@@ -1,0 +1,59 @@
+smart-invitation-saas/
+├── apps/
+│   ├── web/                         # React subscriber + invitee + admin UI
+│   │   ├── public/
+│   │   └── src/
+│   │       ├── app/                 # app providers and bootstrap
+│   │       ├── assets/
+│   │       ├── components/
+│   │       │   ├── ui/              # buttons, inputs, modals, tables
+│   │       │   └── common/          # header, sidebar, protected layout
+│   │       ├── features/
+│   │       │   ├── auth/
+│   │       │   ├── dashboard/
+│   │       │   ├── guests/
+│   │       │   ├── events/
+│   │       │   ├── invitations/
+│   │       │   ├── rsvp/
+│   │       │   ├── subscriptions/
+│   │       │   └── admin/
+│   │       ├── hooks/
+│   │       ├── lib/
+│   │       ├── routes/
+│   │       ├── services/            # API client and endpoint functions
+│   │       ├── store/
+│   │       ├── styles/
+│   │       └── utils/
+│   └── api/                         # Node/Express modular monolith
+│       ├── src/
+│       │   ├── config/
+│       │   ├── constants/
+│       │   ├── database/
+│       │   ├── jobs/
+│       │   ├── middlewares/         # auth, tenant, role, error handling
+│       │   ├── modules/
+│       │   │   ├── auth/
+│       │   │   ├── users/
+│       │   │   ├── guests/
+│       │   │   ├── guest-import/
+│       │   │   ├── events/
+│       │   │   ├── invitations/
+│       │   │   ├── rsvp/
+│       │   │   ├── subscriptions/
+│       │   │   ├── payments/
+│       │   │   ├── templates/
+│       │   │   ├── admin/
+│       │   │   └── uploads/
+│       │   ├── routes/
+│       │   ├── services/
+│       │   ├── utils/
+│       │   └── validators/
+│       └── tests/
+├── packages/
+│   └── shared/                      # shared constants, schemas and types
+├── docs/                            # BRD/PRD, architecture, privacy decisions
+├── infra/                           # Docker and deployment config
+├── scripts/
+├── .gitignore
+├── package.json
+└── README.md

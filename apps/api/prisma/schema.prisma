@@ -1,0 +1,380 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  HOST
+  SUPER_ADMIN
+}
+
+enum EventType {
+  WEDDING
+  BIRTHDAY
+  ANNIVERSARY
+  ENGAGEMENT
+  HOUSEWARMING
+  FAMILY_GATHERING
+  OTHER
+}
+
+enum RsvpDeadlineType {
+  EXACT_DATE
+  DAYS_BEFORE
+}
+
+enum WhatsAppStatus {
+  PENDING
+  SENT
+}
+
+enum RsvpStatus {
+  IN
+  OUT
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  TRIAL
+  EXPIRED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+// 1. User Model (Host / Super Admin)
+model User {
+  id              String                @id @default(uuid())
+  mobile          String                @unique
+  name            String?
+  email           String?
+  role            Role                  @default(HOST)
+  isActive        Boolean               @default(true)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  guests               Guest[]
+  events               Event[]
+  subscription         UserSubscription?
+  customTemplates      InvitationTemplate[]
+  auditLogs            AuditLog[]
+  subscriptionHistory  SubscriptionHistory[]
+  paymentTransactions  PaymentTransaction[]
+  supportTickets       SupportTicket[]        @relation("UserTickets")
+  assignedTickets      SupportTicket[]        @relation("AssignedTickets")
+
+  @@index([mobile])
+}
+
+// 2. Guest Model (Reusable Guest Database: "My Guests")
+model Guest {
+  id              String        @id @default(uuid())
+  userId          String
+  fullName        String
+  whatsappNumber  String
+  email           String?
+  address         String?
+  relation        String?
+  isPermanent     Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventGuests     EventGuest[]
+
+  @@index([userId])
+  @@index([userId, whatsappNumber])
+}
+
+// 3. Event Model
+model Event {
+  id                     String           @id @default(uuid())
+  userId                 String
+  name                   String
+  eventType              EventType
+  eventDate              DateTime
+  eventTime              String?
+  venue                  String
+  description            String?
+  coverImageUrl          String?
+  rsvpDeadlineType       RsvpDeadlineType @default(DAYS_BEFORE)
+  rsvpDeadlineDate       DateTime?
+  rsvpDeadlineDaysBefore Int?             @default(2)
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+
+  user                   User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventGuests            EventGuest[]
+  invitations            Invitation[]
+
+  @@index([userId])
+  @@index([eventDate])
+}
+
+// 4. EventGuest Model (Event-specific Guest List: Junction with permanent guest or event-only)
+model EventGuest {
+  id              String       @id @default(uuid())
+  eventId         String
+  guestId         String?      // Optional: references permanent Guest if chosen from My Guests
+  name            String
+  whatsappNumber  String
+  email           String?
+  address         String?
+  relation        String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  event           Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  guest           Guest?       @relation(fields: [guestId], references: [id], onDelete: SetNull)
+  invitation      Invitation?
+
+  @@unique([eventId, guestId])
+  @@index([eventId])
+  @@index([guestId])
+}
+
+// 5. InvitationTemplate Model
+model InvitationTemplate {
+  id              String        @id @default(uuid())
+  title           String
+  eventType       EventType?
+  previewImageUrl String?
+  contentHtml     String?
+  defaultMessage  String
+  isSystem        Boolean       @default(false)
+  userId          String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  user            User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  invitations     Invitation[]
+
+  @@index([eventType])
+  @@index([isSystem])
+}
+
+// 6. Invitation Model (Personalized invitation with unique RSVP token)
+model Invitation {
+  id                  String              @id @default(uuid())
+  eventId             String
+  eventGuestId        String              @unique
+  templateId          String?
+  token               String              @unique
+  personalizedMessage String?
+  whatsappStatus      WhatsAppStatus      @default(PENDING)
+  sentAt              DateTime?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  event               Event               @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventGuest          EventGuest          @relation(fields: [eventGuestId], references: [id], onDelete: Cascade)
+  template            InvitationTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  rsvpResponse        RsvpResponse?
+
+  @@index([token])
+  @@index([eventId])
+}
+
+// 7. RsvpResponse Model (Guest response - Private; only aggregate counts exposed to host)
+model RsvpResponse {
+  id              String       @id @default(uuid())
+  invitationId    String       @unique
+  status          RsvpStatus
+  companionCount  Int          @default(0)
+  respondedAt     DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  invitation      Invitation   @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+
+  @@index([invitationId])
+  @@index([status])
+}
+
+// 8. SubscriptionPlan Model
+model SubscriptionPlan {
+  id                       String                @id @default(uuid())
+  name                     String
+  code                     String                @unique
+  description              String?
+  features                 String?               // JSON string array of features
+  priceYearly              Int                   @default(0) // in INR paise / minor units
+  currency                 String                @default("INR")
+  maxEvents                Int                   @default(3)
+  maxGuestsPerEvent        Int                   @default(50)
+  maxPermanentGuests       Int                   @default(100)
+  canUploadCustomTemplates Boolean               @default(false)
+  canCustomInviteUpload    Boolean               @default(false)
+  tier                     Int                   @default(0) // 0: Trial, 1: Basic, 2: Standard, 3: Premium
+  isPopular                Boolean               @default(false)
+  isActive                 Boolean               @default(true)
+  createdAt                DateTime              @default(now())
+  updatedAt                DateTime              @updatedAt
+
+  subscriptions            UserSubscription[]
+  paymentTransactions      PaymentTransaction[]
+  subscriptionHistory      SubscriptionHistory[]
+
+  @@index([code])
+  @@index([isActive])
+}
+
+// 9. UserSubscription Model
+model UserSubscription {
+  id                String             @id @default(uuid())
+  userId            String             @unique
+  planId            String
+  status            SubscriptionStatus @default(TRIAL)
+  startsAt          DateTime           @default(now())
+  expiresAt         DateTime
+  cancelledAt       DateTime?
+  gracePeriodEndsAt DateTime?
+  autoRenew         Boolean            @default(true)
+  paymentProvider   String?
+  paymentId         String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan              SubscriptionPlan   @relation(fields: [planId], references: [id], onDelete: Restrict)
+
+  @@index([status])
+  @@index([expiresAt])
+}
+
+// 10. PaymentTransaction Model
+model PaymentTransaction {
+  id              String         @id @default(uuid())
+  userId          String
+  planId          String
+  amount          Int            // in INR paise
+  currency        String         @default("INR")
+  orderId         String         @unique // Razorpay order_id
+  paymentId       String?        @unique // Razorpay payment_id
+  signature       String?
+  status          PaymentStatus  @default(PENDING)
+  paymentProvider String         @default("RAZORPAY")
+  webhookEventId  String?        @unique
+  metadata        String?        // JSON string
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan            SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([status])
+  @@index([orderId])
+  @@index([paymentId])
+  @@index([createdAt])
+}
+
+// 11. SubscriptionHistory Model
+model SubscriptionHistory {
+  id          String             @id @default(uuid())
+  userId      String
+  planId      String
+  status      SubscriptionStatus
+  startsAt    DateTime
+  expiresAt   DateTime
+  reason      String             // "REGISTRATION_TRIAL", "RAZORPAY_PAYMENT", "ADMIN_OVERRIDE", "PLAN_UPGRADE", "PLAN_DOWNGRADE", "RENEWAL", "EXPIRED", "CANCELLED"
+  notes       String?
+  performedBy String?            // "SYSTEM", "USER", or admin userId
+  createdAt   DateTime           @default(now())
+
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan        SubscriptionPlan   @relation(fields: [planId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// 12. SupportTicket Model
+model SupportTicket {
+  id           String         @id @default(uuid())
+  userId       String
+  subject      String
+  message      String
+  category     String         @default("GENERAL") // BILLING, TECHNICAL, GENERAL, FEATURE
+  status       TicketStatus   @default(OPEN)
+  priority     TicketPriority @default(MEDIUM)
+  adminNotes   String?
+  assignedToId String?
+  resolvedAt   DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  user         User           @relation("UserTickets", fields: [userId], references: [id], onDelete: Cascade)
+  assignedTo   User?          @relation("AssignedTickets", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([status])
+  @@index([assignedToId])
+  @@index([createdAt])
+}
+
+// 13. SystemSetting Model
+model SystemSetting {
+  key         String   @id
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+}
+
+// 14. OtpChallenge Model (Secure 5-digit OTP challenges)
+model OtpChallenge {
+  id          String    @id @default(uuid())
+  mobile      String
+  hashedOtp   String
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(5)
+  expiresAt   DateTime
+  verifiedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([mobile])
+  @@index([expiresAt])
+}
+
+// 15. AuditLog Model (Privileged & security auditing)
+model AuditLog {
+  id           String    @id @default(uuid())
+  actorId      String?
+  action       String
+  resourceType String
+  resourceId   String?
+  ipAddress    String?
+  userAgent    String?
+  metadata     String?
+  createdAt    DateTime  @default(now())
+
+  actor        User?     @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId])
+  @@index([action])
+  @@index([createdAt])
+}
+
