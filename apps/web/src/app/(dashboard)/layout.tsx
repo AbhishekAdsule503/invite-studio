@@ -81,7 +81,7 @@ export default function DashboardLayout({
 
           <div className="flex items-center space-x-2">
             <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-brand-700 to-brand-500 flex items-center justify-center text-white">
-              <Sparkles className="w-3.5 h-3.5" />
+              <Sparkles className="w-3.5 h-3.5 text-brand-accent" />
             </div>
             <span className="font-display font-bold text-sm text-charcoal-900">
               INVITE STUDIO

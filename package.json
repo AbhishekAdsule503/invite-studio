@@ -15,6 +15,7 @@
     "test": "npm run test --workspaces --if-present",
     "prisma:generate": "npm run prisma:generate --workspace @smart-invitation/api",
     "prisma:migrate": "npm run prisma:migrate --workspace @smart-invitation/api",
+    "prisma:deploy": "npm run prisma:deploy --workspace @smart-invitation/api",
     "prisma:studio": "npm run prisma:studio --workspace @smart-invitation/api"
   },
   "allowScripts": {

@@ -194,7 +194,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, initialData }: Cr
               <select
                 value={eventType}
                 onChange={(e) => setEventType(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-surface-border bg-white text-sm text-charcoal-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full px-3 py-2 rounded-xl border border-surface-border bg-surface-card text-sm text-charcoal-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
                 <option value={EventType.WEDDING}>Wedding</option>
                 <option value={EventType.BIRTHDAY}>Birthday</option>
@@ -242,7 +242,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, initialData }: Cr
               placeholder="e.g. We warmly invite your family to celebrate our special day with us."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl border border-surface-border bg-white text-sm text-charcoal-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="w-full px-3 py-2 rounded-xl border border-surface-border bg-surface-card text-sm text-charcoal-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
 
@@ -296,7 +296,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, initialData }: Cr
                     max={60}
                     value={rsvpDeadlineDaysBefore}
                     onChange={(e) => setRsvpDeadlineDaysBefore(Math.max(0, parseInt(e.target.value, 10) || 0))}
-                    className="w-24 px-3 py-1.5 rounded-lg border border-surface-border bg-white text-sm font-semibold"
+                    className="w-24 px-3 py-1.5 rounded-lg border border-surface-border bg-surface-card text-sm font-semibold text-charcoal-900"
                   />
                   <span className="text-xs text-charcoal-500">days before event</span>
                 </div>

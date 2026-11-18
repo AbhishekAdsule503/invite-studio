@@ -102,7 +102,7 @@ export default function AdminUsersPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-charcoal-800 pb-6">
         <div>
           <div className="flex items-center space-x-2">
-            <Badge variant="brand" className="bg-purple-500/20 text-purple-300 border-purple-500/30 text-[10px] uppercase font-bold">
+            <Badge variant="brand" className="bg-brand-500/20 text-brand-200 border-brand-500/30 text-[10px] uppercase font-bold">
               Privacy Enforced
             </Badge>
             <span className="text-charcoal-600">•</span>
@@ -137,7 +137,7 @@ export default function AdminUsersPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by mobile or name..."
-              className="w-full text-xs rounded-xl bg-charcoal-900 border border-charcoal-800 pl-9 pr-3 py-2 text-white placeholder-charcoal-500 focus:outline-hidden focus:border-purple-500"
+              className="w-full text-xs rounded-xl bg-charcoal-900 border border-charcoal-800 pl-9 pr-3 py-2 text-white placeholder-charcoal-500 focus:outline-hidden focus:border-brand-500"
             />
           </div>
           <Button type="submit" size="sm" className="bg-charcoal-800 text-white text-xs hover:bg-charcoal-700">
@@ -149,7 +149,7 @@ export default function AdminUsersPage() {
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
-            className="rounded-xl bg-charcoal-900 border border-charcoal-800 px-3 py-2 text-charcoal-300 focus:outline-hidden focus:border-purple-500 text-xs"
+            className="rounded-xl bg-charcoal-900 border border-charcoal-800 px-3 py-2 text-charcoal-300 focus:outline-hidden focus:border-brand-500 text-xs"
           >
             <option value="">All Roles</option>
             <option value="HOST">Host</option>
@@ -159,7 +159,7 @@ export default function AdminUsersPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-xl bg-charcoal-900 border border-charcoal-800 px-3 py-2 text-charcoal-300 focus:outline-hidden focus:border-purple-500 text-xs"
+            className="rounded-xl bg-charcoal-900 border border-charcoal-800 px-3 py-2 text-charcoal-300 focus:outline-hidden focus:border-brand-500 text-xs"
           >
             <option value="">All Statuses</option>
             <option value="true">Active Only</option>
@@ -204,7 +204,7 @@ export default function AdminUsersPage() {
 
                     <td className="py-3.5 px-4">
                       {u.role === 'SUPER_ADMIN' ? (
-                        <Badge variant="brand" className="bg-purple-500/20 text-purple-300 border-purple-500/30 text-[10px] uppercase font-bold">
+                        <Badge variant="brand" className="bg-brand-500/20 text-brand-200 border-brand-500/30 text-[10px] uppercase font-bold">
                           Admin
                         </Badge>
                       ) : (
@@ -313,7 +313,7 @@ export default function AdminUsersPage() {
           <div className="bg-charcoal-900 rounded-3xl max-w-lg w-full p-6 border border-charcoal-800 text-white shadow-2xl animate-in fade-in zoom-in-95 duration-150 space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-charcoal-800">
               <div className="flex items-center space-x-2.5">
-                <div className="w-9 h-9 rounded-2xl bg-purple-500/20 text-purple-300 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-2xl bg-brand-500/20 text-brand-accent flex items-center justify-center">
                   <Users className="w-4 h-4" />
                 </div>
                 <div>
@@ -430,7 +430,7 @@ export default function AdminUsersPage() {
                 value={statusReason}
                 onChange={(e) => setStatusReason(e.target.value)}
                 placeholder="Provide rationale for account status adjustment..."
-                className="w-full text-xs rounded-xl bg-charcoal-800 border border-charcoal-700 p-2.5 text-white placeholder-charcoal-500 focus:outline-hidden focus:border-purple-500"
+                className="w-full text-xs rounded-xl bg-charcoal-800 border border-charcoal-700 p-2.5 text-white placeholder-charcoal-500 focus:outline-hidden focus:border-brand-500"
               />
             </div>
 

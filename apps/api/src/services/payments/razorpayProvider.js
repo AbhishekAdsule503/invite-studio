@@ -1,33 +1,62 @@
 import crypto from 'crypto';
+import Razorpay from 'razorpay';
 import PaymentProvider from './paymentProvider.js';
+import { config } from '../../config/env.js';
 
 export class RazorpayProvider extends PaymentProvider {
   constructor(options = {}) {
     super();
-    this.keyId = options.keyId || process.env.RAZORPAY_KEY_ID || '';
-    this.keySecret = options.keySecret || process.env.RAZORPAY_KEY_SECRET || '';
-    this.webhookSecret = options.webhookSecret || process.env.RAZORPAY_WEBHOOK_SECRET || '';
-    this.isLive = Boolean(this.keyId && this.keySecret && !this.keyId.startsWith('rzp_test_mock'));
-    this.isConfigured = Boolean(this.keyId && this.keySecret);
+    this.keyId = options.keyId || config.razorpay?.keyId || process.env.RAZORPAY_KEY_ID || '';
+    this.keySecret = options.keySecret || config.razorpay?.keySecret || process.env.RAZORPAY_KEY_SECRET || '';
+    this.webhookSecret = options.webhookSecret || config.razorpay?.webhookSecret || process.env.RAZORPAY_WEBHOOK_SECRET || '';
+    this._refreshState();
   }
 
   /**
-   * Helper to check credentials status
+   * Refreshes internal state and Razorpay SDK client from latest environment variables
+   */
+  _refreshState() {
+    this.keyId = this.keyId || config.razorpay?.keyId || process.env.RAZORPAY_KEY_ID || '';
+    this.keySecret = this.keySecret || config.razorpay?.keySecret || process.env.RAZORPAY_KEY_SECRET || '';
+    this.webhookSecret = this.webhookSecret || config.razorpay?.webhookSecret || process.env.RAZORPAY_WEBHOOK_SECRET || '';
+
+    this.isTestMode = Boolean(this.keyId && this.keyId.startsWith('rzp_test_'));
+    this.isLive = Boolean(this.keyId && this.keyId.startsWith('rzp_live_'));
+    this.isConfigured = Boolean(this.keyId && this.keySecret && !this.keyId.startsWith('rzp_test_mock'));
+
+    if (this.isConfigured) {
+      try {
+        this.client = new Razorpay({
+          key_id: this.keyId,
+          key_secret: this.keySecret
+        });
+      } catch (err) {
+        console.error('[RazorpayProvider] Razorpay SDK initialization warning:', err.message);
+        this.client = null;
+      }
+    } else {
+      this.client = null;
+    }
+  }
+
+  /**
+   * Helper to check credentials status for UI & health checks
    */
   getStatus() {
+    this._refreshState();
     return {
       provider: 'RAZORPAY',
       configured: this.isConfigured,
-      mode: this.isLive ? 'live' : (this.isConfigured ? 'test_credentials' : 'sandbox_ready'),
-      keyId: this.keyId ? `${this.keyId.slice(0, 8)}...` : null,
+      mode: this.isLive ? 'live' : (this.isTestMode ? 'test' : (this.isConfigured ? 'test_credentials' : 'sandbox_ready')),
+      keyId: this.keyId || null,
       notes: this.isConfigured
-        ? 'Razorpay credentials configured'
+        ? `Razorpay ${this.isLive ? 'Live' : 'Test Mode'} credentials configured`
         : 'Razorpay credentials not set. Operating in secure sandbox-ready mode. Real transactions require RAZORPAY_KEY_ID & RAZORPAY_KEY_SECRET.'
     };
   }
 
   /**
-   * Creates an order with Razorpay or sandbox fallback
+   * Creates an order with Razorpay Test Mode or sandbox fallback
    */
   async createOrder({ amount, currency = 'INR', receipt, notes = {} }) {
     if (!amount || amount <= 0) {
@@ -36,9 +65,29 @@ export class RazorpayProvider extends PaymentProvider {
       throw err;
     }
 
-    // If real credentials are provided, call Razorpay Orders API
+    this._refreshState();
+
+    // If real/test credentials are provided, invoke Razorpay Orders API
     if (this.isConfigured && !this.keyId.startsWith('rzp_test_mock')) {
       try {
+        if (this.client) {
+          const order = await this.client.orders.create({
+            amount,
+            currency,
+            receipt: receipt || `rcpt_${Date.now()}`,
+            notes
+          });
+
+          return {
+            orderId: order.id,
+            amount: order.amount,
+            currency: order.currency,
+            keyId: this.keyId,
+            isSandbox: false
+          };
+        }
+
+        // Native HTTP fallback
         const authHeader = 'Basic ' + Buffer.from(`${this.keyId}:${this.keySecret}`).toString('base64');
         const response = await fetch('https://api.razorpay.com/v1/orders', {
           method: 'POST',
@@ -76,7 +125,7 @@ export class RazorpayProvider extends PaymentProvider {
       }
     }
 
-    // Sandbox-ready mode: Create standardized sandbox order
+    // Sandbox-ready mode: Standardized simulated order for local development/testing
     const orderId = `order_sbx_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
     return {
       orderId,
@@ -99,6 +148,7 @@ export class RazorpayProvider extends PaymentProvider {
       return false;
     }
 
+    this._refreshState();
     const secret = this.keySecret || 'sandbox_razorpay_secret_test_key';
     const payload = `${orderId}|${paymentId}`;
     const expectedSignature = crypto
@@ -123,20 +173,33 @@ export class RazorpayProvider extends PaymentProvider {
    * Generates a valid test signature for sandbox testing
    */
   generateSandboxSignature(orderId, paymentId) {
+    this._refreshState();
     const secret = this.keySecret || 'sandbox_razorpay_secret_test_key';
     const payload = `${orderId}|${paymentId}`;
     return crypto.createHmac('sha256', secret).update(payload).digest('hex');
   }
 
   /**
-   * Verifies incoming webhook HMAC-SHA256 signature
+   * Verifies incoming webhook HMAC-SHA256 signature using SDK & crypto fallback
    */
   async verifyWebhookSignature({ rawBody, signature }) {
     if (!signature || !rawBody) {
       return false;
     }
 
+    this._refreshState();
     const secret = this.webhookSecret || this.keySecret || 'sandbox_razorpay_secret_test_key';
+
+    // 1. Official Razorpay SDK webhook validator
+    try {
+      const bodyStr = typeof rawBody === 'string' ? rawBody : rawBody.toString('utf8');
+      const isValid = Razorpay.validateWebhookSignature(bodyStr, signature, secret);
+      if (isValid) return true;
+    } catch {
+      // Continue to cryptographic HMAC comparison
+    }
+
+    // 2. Cryptographic timing-safe comparison
     const expectedSignature = crypto
       .createHmac('sha256', secret)
       .update(rawBody)

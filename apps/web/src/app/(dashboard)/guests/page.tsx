@@ -187,7 +187,7 @@ export default function GuestsPage() {
                 setSearchTerm(e.target.value);
                 setPage(1);
               }}
-              className="w-full pl-10 pr-4 py-2 rounded-xl border border-surface-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="w-full pl-10 pr-4 py-2 rounded-xl border border-surface-border bg-surface-card text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
 
@@ -293,7 +293,7 @@ export default function GuestsPage() {
                   <th className="px-6 py-3.5 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-surface-border bg-white">
+              <tbody className="divide-y divide-surface-border bg-surface-card">
                 {guests.map((guest) => {
                   const isSelected = selectedIds.has(guest.id);
                   return (

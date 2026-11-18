@@ -7,20 +7,42 @@ export class PaymentService {
   }
 
   /**
-   * Creates a payment order for a yearly plan
+   * Creates a payment order for a yearly or monthly plan
    */
-  async createSubscriptionOrder(userId, planId) {
+  async createSubscriptionOrder(userId, planId, billingCycle = 'YEARLY') {
     const plan = await prisma.subscriptionPlan.findUnique({
       where: { id: planId }
     });
 
-    if (!plan || !plan.isActive) {
+    if (!plan || !plan.isActive || plan.isLegacy) {
       const err = new Error('Requested subscription plan does not exist or is inactive.');
       err.statusCode = 404;
       throw err;
     }
 
-    if (plan.priceYearly <= 0) {
+    if (plan.code === 'TRIAL' || (plan.priceYearly <= 0 && (!plan.priceMonthly || plan.priceMonthly <= 0))) {
+      const err = new Error('Free or trial plans do not require payment processing.');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const cycle = billingCycle?.toUpperCase() === 'MONTHLY' ? 'MONTHLY' : 'YEARLY';
+
+    if (cycle === 'MONTHLY' && !plan.hasMonthlyBilling) {
+      const err = new Error(`Monthly billing is not available for ${plan.name}.`);
+      err.statusCode = 400;
+      throw err;
+    }
+
+    if (cycle === 'YEARLY' && !plan.hasYearlyBilling) {
+      const err = new Error(`Yearly billing is not available for ${plan.name}.`);
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const amount = cycle === 'MONTHLY' ? plan.priceMonthly : plan.priceYearly;
+
+    if (amount <= 0) {
       const err = new Error('Free or trial plans do not require payment processing.');
       err.statusCode = 400;
       throw err;
@@ -40,13 +62,14 @@ export class PaymentService {
     // Create order via provider abstraction
     const receipt = `rcpt_${userId.slice(0, 8)}_${Date.now()}`;
     const orderData = await this.provider.createOrder({
-      amount: plan.priceYearly,
+      amount,
       currency: plan.currency || 'INR',
       receipt,
       notes: {
         userId,
         planId: plan.id,
         planCode: plan.code,
+        billingCycle: cycle,
         userMobile: user.mobile
       }
     });
@@ -56,14 +79,16 @@ export class PaymentService {
       data: {
         userId,
         planId: plan.id,
-        amount: plan.priceYearly,
+        amount,
         currency: plan.currency || 'INR',
         orderId: orderData.orderId,
         status: 'PENDING',
         paymentProvider: 'RAZORPAY',
+        billingCycle: cycle,
         metadata: JSON.stringify({
           planName: plan.name,
           planCode: plan.code,
+          billingCycle: cycle,
           isSandbox: orderData.isSandbox || false,
           receipt
         })
@@ -72,15 +97,17 @@ export class PaymentService {
 
     return {
       orderId: orderData.orderId,
-      amount: plan.priceYearly,
+      amount,
       currency: plan.currency || 'INR',
       keyId: orderData.keyId,
       transactionId: transaction.id,
+      billingCycle: cycle,
       plan: {
         id: plan.id,
         name: plan.name,
         code: plan.code,
         priceYearly: plan.priceYearly,
+        priceMonthly: plan.priceMonthly,
         currency: plan.currency
       },
       isSandbox: Boolean(orderData.isSandbox)
@@ -166,9 +193,11 @@ export class PaymentService {
       }
     });
 
-    // Activate subscription (1-year duration)
+    // Activate subscription based on billingCycle
+    const cycle = transaction.billingCycle || 'YEARLY';
+    const durationDays = cycle === 'MONTHLY' ? 30 : 365;
     const now = new Date();
-    const oneYearLater = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+    const expiresAt = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000);
 
     const subscription = await prisma.userSubscription.upsert({
       where: { userId },
@@ -176,16 +205,18 @@ export class PaymentService {
         userId,
         planId: transaction.planId,
         status: 'ACTIVE',
+        billingCycle: cycle,
         startsAt: now,
-        expiresAt: oneYearLater,
+        expiresAt,
         paymentProvider: 'RAZORPAY',
         paymentId
       },
       update: {
         planId: transaction.planId,
         status: 'ACTIVE',
+        billingCycle: cycle,
         startsAt: now,
-        expiresAt: oneYearLater,
+        expiresAt,
         cancelledAt: null,
         paymentProvider: 'RAZORPAY',
         paymentId
@@ -200,9 +231,9 @@ export class PaymentService {
         planId: transaction.planId,
         status: 'ACTIVE',
         startsAt: now,
-        expiresAt: oneYearLater,
+        expiresAt,
         reason: 'RAZORPAY_PAYMENT',
-        notes: `Verified payment for ${transaction.plan.name} (₹${(transaction.amount / 100).toFixed(2)})`,
+        notes: `Verified ${cycle.toLowerCase()} payment for ${transaction.plan.name} (₹${(transaction.amount / 100).toFixed(2)})`,
         performedBy: 'USER'
       }
     });
@@ -283,8 +314,10 @@ export class PaymentService {
             return { received: true, alreadyProcessed: true };
           }
 
+          const cycle = transaction.billingCycle || 'YEARLY';
+          const durationDays = cycle === 'MONTHLY' ? 30 : 365;
           const now = new Date();
-          const oneYearLater = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+          const expiresAt = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000);
 
           await prisma.paymentTransaction.update({
             where: { id: transaction.id },
@@ -301,16 +334,18 @@ export class PaymentService {
               userId: transaction.userId,
               planId: transaction.planId,
               status: 'ACTIVE',
+              billingCycle: cycle,
               startsAt: now,
-              expiresAt: oneYearLater,
+              expiresAt,
               paymentProvider: 'RAZORPAY',
               paymentId
             },
             update: {
               planId: transaction.planId,
               status: 'ACTIVE',
+              billingCycle: cycle,
               startsAt: now,
-              expiresAt: oneYearLater,
+              expiresAt,
               cancelledAt: null,
               paymentProvider: 'RAZORPAY',
               paymentId
@@ -323,10 +358,45 @@ export class PaymentService {
               planId: transaction.planId,
               status: 'ACTIVE',
               startsAt: now,
-              expiresAt: oneYearLater,
+              expiresAt,
               reason: 'WEBHOOK_PAYMENT_CAPTURED',
-              notes: `Webhook confirmed payment for order ${orderId}`,
+              notes: `Webhook confirmed ${cycle.toLowerCase()} payment for order ${orderId}`,
               performedBy: 'SYSTEM'
+            }
+          });
+        }
+      }
+    } else if (eventType === 'payment.failed') {
+      const entity = payload.payload?.payment?.entity;
+      const orderId = entity?.order_id;
+      const paymentId = entity?.id;
+      const errorDescription = entity?.error_description || entity?.error_reason || 'Payment failed';
+
+      if (orderId) {
+        const transaction = await prisma.paymentTransaction.findUnique({
+          where: { orderId }
+        });
+
+        // Only mark FAILED if currently PENDING - do not overwrite SUCCESS
+        if (transaction && transaction.status === 'PENDING') {
+          let metadata = {};
+          try {
+            metadata = JSON.parse(transaction.metadata || '{}');
+          } catch {
+            metadata = {};
+          }
+
+          await prisma.paymentTransaction.update({
+            where: { id: transaction.id },
+            data: {
+              status: 'FAILED',
+              paymentId: paymentId || transaction.paymentId,
+              webhookEventId: eventId,
+              metadata: JSON.stringify({
+                ...metadata,
+                failureReason: errorDescription,
+                failedAt: new Date().toISOString()
+              })
             }
           });
         }
@@ -334,6 +404,64 @@ export class PaymentService {
     }
 
     return { received: true, event: eventType };
+  }
+
+  /**
+   * Records a user-initiated payment failure or modal dismissal safely
+   */
+  async recordPaymentFailure(userId, { orderId, paymentId, reason, description }) {
+    if (!orderId) {
+      const err = new Error('Order ID is required to record payment failure.');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const transaction = await prisma.paymentTransaction.findUnique({
+      where: { orderId }
+    });
+
+    if (!transaction) {
+      const err = new Error('Payment order record not found.');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    if (transaction.userId !== userId) {
+      const err = new Error('Unauthorized transaction ownership verification.');
+      err.statusCode = 403;
+      throw err;
+    }
+
+    // If transaction is already SUCCESS, idempotently retain SUCCESS
+    if (transaction.status === 'SUCCESS') {
+      return { success: true, status: 'SUCCESS', message: 'Transaction already succeeded.' };
+    }
+
+    let meta = {};
+    try {
+      meta = JSON.parse(transaction.metadata || '{}');
+    } catch {
+      meta = {};
+    }
+
+    const updated = await prisma.paymentTransaction.update({
+      where: { id: transaction.id },
+      data: {
+        status: 'FAILED',
+        paymentId: paymentId || transaction.paymentId,
+        metadata: JSON.stringify({
+          ...meta,
+          failureReason: description || reason || 'Payment cancelled or failed in checkout',
+          failedAt: new Date().toISOString()
+        })
+      }
+    });
+
+    return {
+      success: true,
+      status: 'FAILED',
+      transaction: updated
+    };
   }
 
   /**

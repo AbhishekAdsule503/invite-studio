@@ -5,17 +5,32 @@
 :root {
   --font-inter: 'Inter', system-ui, -apple-system, sans-serif;
   --font-jakarta: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+
+  /* Theme Palette Variables */
+  --color-primary-burgundy: #401526;
+  --color-secondary-wine: #5C2032;
+  --color-champagne-gold: #D8B66E;
+  --color-warm-ivory: #F8F3EB;
+  --color-soft-white: #FFFDFC;
+  --color-dark-text: #34232B;
+  --color-muted-text: #887A78;
+  --color-border: #E9DED1;
 }
 
 @layer base {
   body {
-    background-color: #FBFBF9;
-    color: #111827;
+    background-color: #F8F3EB;
+    color: #34232B;
     font-family: var(--font-inter);
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: var(--font-jakarta);
+    color: #34232B;
   }
 }
-

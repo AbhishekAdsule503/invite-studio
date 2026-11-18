@@ -8,8 +8,18 @@ const nextConfig = {
   },
   typescript: {
     ignoreBuildErrors: false,
-  }
+  },
+  async rewrites() {
+    const apiOrigin = process.env.NEXT_PUBLIC_API_URL
+      ? process.env.NEXT_PUBLIC_API_URL.replace(/\/api\/v1\/?$/, '')
+      : 'http://localhost:5000';
+    return [
+      {
+        source: '/uploads/:path*',
+        destination: `${apiOrigin}/uploads/:path*`,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
-

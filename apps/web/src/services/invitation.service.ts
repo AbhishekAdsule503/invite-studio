@@ -17,6 +17,7 @@ export interface InvitationItem {
   eventGuestId: string;
   templateId?: string | null;
   token: string;
+  coverImageUrl?: string | null;
   personalizedMessage?: string | null;
   whatsappStatus: 'PENDING' | 'SENT';
   sentAt?: string | null;
@@ -25,6 +26,12 @@ export interface InvitationItem {
   invitationUrl: string;
   formattedMessage: string;
   whatsAppUrl: string;
+  hostName?: string | null;
+  eventName?: string;
+  eventVenue?: string;
+  eventDate?: string;
+  eventTime?: string | null;
+  eventType?: string | null;
   eventGuest: {
     id: string;
     name: string;
@@ -46,9 +53,12 @@ export interface InvitationItem {
 
 export interface PublicInvitationData {
   success: boolean;
+  token?: string;
   guestName: string;
   eventName: string;
   eventType: string;
+  hostName?: string | null;
+  invitationUrl?: string;
   eventDate: string;
   eventTime?: string | null;
   venue: string;
@@ -58,10 +68,13 @@ export interface PublicInvitationData {
   isDeadlinePassed: boolean;
   personalizedMessage?: string | null;
   template?: {
+    id?: string;
     title: string;
+    eventType?: string | null;
     previewImageUrl?: string | null;
     contentHtml?: string | null;
   } | null;
+  designKey?: 'WEDDING' | 'ANNIVERSARY' | 'OTHER' | string;
   rsvpStatus?: 'IN' | 'OUT' | null;
   companionCount: number;
 }
@@ -79,6 +92,32 @@ export const invitationService = {
     return res.data.template;
   },
 
+  async uploadTemplateImage(file: File): Promise<{
+    imageUrl: string;
+    previewImageUrl: string;
+  }> {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const token = typeof window !== 'undefined' ? localStorage.getItem('invite_token') : null;
+
+    const res = await apiClient.post<{
+      success: boolean;
+      imageUrl: string;
+      previewImageUrl?: string;
+    }>('/templates/upload', formData, {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      }
+    });
+
+    const url = res.data.imageUrl || res.data.previewImageUrl || '';
+    return {
+      imageUrl: url,
+      previewImageUrl: url
+    };
+  },
+
   async createCustomTemplate(data: {
     title: string;
     eventType?: string;
@@ -92,6 +131,7 @@ export const invitationService = {
   async generateInvitations(data: {
     eventId: string;
     templateId?: string | null;
+    coverImageUrl?: string | null;
     eventGuestIds?: string[];
     customMessage?: string;
     regenerate?: boolean;

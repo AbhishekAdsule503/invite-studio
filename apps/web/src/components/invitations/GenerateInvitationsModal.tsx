@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Sparkles, Send, Check, AlertCircle, Palette, Users, FileText } from 'lucide-react';
+import { X, Sparkles, Send, AlertCircle, Users, Languages, RotateCcw, Upload, Trash2, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { invitationService, InvitationTemplate } from '@/services/invitation.service';
+import { invitationService } from '@/services/invitation.service';
 import { eventService, EventItem, EventGuest } from '@/services/event.service';
+import { DEFAULT_WHATSAPP_TEMPLATES } from '@smart-invitation/shared';
 
 interface GenerateInvitationsModalProps {
   isOpen: boolean;
@@ -23,12 +24,16 @@ export function GenerateInvitationsModal({
   onSuccess
 }: GenerateInvitationsModalProps) {
   const [activeEventId, setActiveEventId] = useState(selectedEventId);
-  const [templates, setTemplates] = useState<InvitationTemplate[]>([]);
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
-  const [customMessage, setCustomMessage] = useState('');
+  const [language, setLanguage] = useState<'EN' | 'HI'>('EN');
+  const [customMessage, setCustomMessage] = useState(DEFAULT_WHATSAPP_TEMPLATES.EN);
   const [eventGuests, setEventGuests] = useState<EventGuest[]>([]);
   const [selectedGuestIds, setSelectedGuestIds] = useState<Set<string>>(new Set());
   const [regenerate, setRegenerate] = useState(false);
+
+  // Custom card options
+  const [cardOption, setCardOption] = useState<'STUDIO' | 'CUSTOM'>('STUDIO');
+  const [customCardFile, setCustomCardFile] = useState<File | null>(null);
+  const [customCardPreviewUrl, setCustomCardPreviewUrl] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -40,48 +45,31 @@ export function GenerateInvitationsModal({
     else if (events.length > 0) setActiveEventId(events[0].id);
   }, [selectedEventId, events]);
 
-  // Load templates & event guests when modal opens or active event changes
+  // Load event guests when active event changes
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !activeEventId) return;
 
     setError('');
     setLoading(true);
 
-    const currentEv = events.find((e) => e.id === activeEventId);
-    const eventType = currentEv ? currentEv.eventType : undefined;
-
-    Promise.all([
-      invitationService.listTemplates(eventType),
-      activeEventId ? eventService.listEventGuests(activeEventId, { limit: 200 }) : Promise.resolve({ guests: [] })
-    ])
-      .then(([tmplList, guestRes]) => {
-        setTemplates(tmplList);
-        if (tmplList.length > 0) {
-          setSelectedTemplateId((prev) => {
-            if (!prev) {
-              setCustomMessage(tmplList[0].defaultMessage || '');
-              return tmplList[0].id;
-            }
-            return prev;
-          });
-        }
+    eventService
+      .listEventGuests(activeEventId, { limit: 200 })
+      .then((guestRes) => {
         setEventGuests(guestRes.guests);
         // Default to selecting all guests
         setSelectedGuestIds(new Set(guestRes.guests.map((g) => g.id)));
       })
       .catch((err) => {
-        setError(err instanceof Error ? err.message : 'Failed to load options.');
+        setError(err instanceof Error ? err.message : 'Failed to load guests.');
       })
       .finally(() => setLoading(false));
-  }, [isOpen, activeEventId, events]);
+  }, [isOpen, activeEventId]);
 
   if (!isOpen) return null;
 
-  const handleTemplateSelect = (tmpl: InvitationTemplate) => {
-    setSelectedTemplateId(tmpl.id);
-    if (!customMessage || customMessage === templates.find((t) => t.id === selectedTemplateId)?.defaultMessage) {
-      setCustomMessage(tmpl.defaultMessage || '');
-    }
+  const handleLanguageChange = (lang: 'EN' | 'HI') => {
+    setLanguage(lang);
+    setCustomMessage(DEFAULT_WHATSAPP_TEMPLATES[lang]);
   };
 
   const handleToggleGuest = (id: string) => {
@@ -114,9 +102,16 @@ export function GenerateInvitationsModal({
     setSubmitting(true);
     setError('');
     try {
+      let uploadedCoverUrl: string | null = null;
+      if (cardOption === 'CUSTOM' && customCardFile) {
+        const uploadRes = await invitationService.uploadTemplateImage(customCardFile);
+        uploadedCoverUrl = uploadRes.imageUrl;
+      }
+
       await invitationService.generateInvitations({
         eventId: activeEventId,
-        templateId: selectedTemplateId || null,
+        templateId: null,
+        coverImageUrl: uploadedCoverUrl,
         eventGuestIds: Array.from(selectedGuestIds),
         customMessage,
         regenerate
@@ -144,7 +139,7 @@ export function GenerateInvitationsModal({
                 Generate Personalized Invitations
               </h3>
               <p className="text-xs text-charcoal-500">
-                Generates unique, secure digital invitation links and prefilled WhatsApp messages
+                Generates unique, secure digital luxury invitation links for every guest
               </p>
             </div>
           </div>
@@ -173,7 +168,7 @@ export function GenerateInvitationsModal({
             <select
               value={activeEventId}
               onChange={(e) => setActiveEventId(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl border border-surface-border bg-white text-sm text-charcoal-900 focus:outline-none focus:ring-2 focus:ring-brand-500 font-medium"
+              className="w-full px-3 py-2 rounded-xl border border-surface-border bg-surface-card text-sm text-charcoal-900 focus:outline-none focus:ring-2 focus:ring-brand-500 font-medium"
             >
               {events.map((ev) => (
                 <option key={ev.id} value={ev.id}>
@@ -183,84 +178,183 @@ export function GenerateInvitationsModal({
             </select>
           </div>
 
-          {/* 2. Template Picker */}
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-charcoal-700 mb-1.5 flex items-center justify-between">
-              <span>Choose Invitation Design *</span>
-              <span className="text-[11px] font-normal text-charcoal-500 lowercase">
-                {templates.length} designs available
-              </span>
-            </label>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-48 overflow-y-auto p-1">
-              {templates.map((tmpl) => {
-                const isSelected = selectedTemplateId === tmpl.id;
-                return (
-                  <div
-                    key={tmpl.id}
-                    onClick={() => handleTemplateSelect(tmpl)}
-                    className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all flex flex-col justify-between ${
-                      isSelected
-                        ? 'border-brand-600 bg-brand-50/50 ring-2 ring-brand-500/20 shadow-xs'
-                        : 'border-surface-border bg-surface-card hover:border-brand-300'
-                    }`}
-                  >
-                    <div>
-                      <div className="w-full h-16 rounded-lg bg-surface-warm overflow-hidden mb-2 relative flex items-center justify-center">
-                        {tmpl.previewImageUrl ? (
-                          /* eslint-disable-next-line @next/next/no-img-element */
-                          <img
-                            src={tmpl.previewImageUrl}
-                            alt={tmpl.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <Palette className="w-6 h-6 text-brand-400" />
-                        )}
-                        {isSelected && (
-                          <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-brand-600 text-white flex items-center justify-center">
-                            <Check className="w-3 h-3" />
-                          </div>
-                        )}
-                      </div>
-                      <p className="text-xs font-bold text-charcoal-900 line-clamp-1">{tmpl.title}</p>
-                    </div>
-
-                    <Badge variant={tmpl.isSystem ? 'default' : 'brand'} className="text-[9px] mt-1.5 self-start">
-                      {tmpl.eventType || 'All'}
-                    </Badge>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* 3. Custom Personalized Message */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
+          {/* 2. Invitation Card Style Option */}
+          <div className="space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <label className="text-xs font-semibold uppercase tracking-wider text-charcoal-700">
-                Personalized WhatsApp Message *
+                Invitation Card Style
               </label>
-              <div className="flex items-center space-x-1">
-                {['{{guestName}}', '{{eventName}}', '{{eventDate}}', '{{venue}}'].map((tag) => (
-                  <button
-                    key={tag}
-                    type="button"
-                    onClick={() => insertTag(tag)}
-                    className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-surface-warm border border-surface-border text-charcoal-600 hover:text-brand-600 hover:border-brand-300"
-                  >
-                    {tag}
-                  </button>
-                ))}
+              <div className="inline-flex rounded-lg bg-surface-warm p-0.5 border border-surface-border text-xs">
+                <button
+                  type="button"
+                  onClick={() => setCardOption('STUDIO')}
+                  className={`px-3 py-1 rounded-md font-medium transition-all ${cardOption === 'STUDIO'
+                      ? 'bg-brand-600 text-white shadow-xs font-semibold'
+                      : 'text-charcoal-600 hover:text-charcoal-900'
+                    }`}
+                >
+                  Studio Luxury Design
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCardOption('CUSTOM')}
+                  className={`px-3 py-1 rounded-md font-medium transition-all ${cardOption === 'CUSTOM'
+                      ? 'bg-brand-600 text-white shadow-xs font-semibold'
+                      : 'text-charcoal-600 hover:text-charcoal-900'
+                    }`}
+                >
+                  Upload Custom Card
+                </button>
               </div>
             </div>
 
+            {cardOption === 'STUDIO' ? (
+              <div className="p-4 rounded-xl bg-[#FAF6F0] border border-[#D8B66E]/40 flex items-start space-x-3">
+                <div className="w-8 h-8 rounded-full border border-[#D8B66E] bg-[#401526] text-[#D8B66E] flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="font-serif italic text-sm">I</span>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-[#401526]">
+                    Universal Signature Luxury Invitation
+                  </p>
+                  <p className="text-[11px] text-[#887A78] mt-0.5 leading-relaxed">
+                    Every guest automatically receives our studio design in Warm Ivory, Champagne Gold, and Deep Burgundy, dynamically rendered with your celebration date, venue, host name, and guest pass.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 rounded-xl bg-surface-card border border-surface-border space-y-3">
+                {customCardPreviewUrl ? (
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                        <span className="text-xs font-semibold text-charcoal-900 truncate max-w-[240px]">
+                          {customCardFile?.name || 'Custom Card Image'}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCustomCardFile(null);
+                          setCustomCardPreviewUrl(null);
+                        }}
+                        className="text-xs text-red-500 hover:text-red-700 flex items-center space-x-1 font-medium"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 mr-0.5" />
+                        <span>Remove</span>
+                      </button>
+                    </div>
+                    <div className="relative aspect-[3/2] w-full max-h-48 rounded-lg overflow-hidden border border-[#D8B66E]/40 bg-[#F8F3EB] flex items-center justify-center shadow-xs">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={customCardPreviewUrl}
+                        alt="Custom Card Preview"
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                    <p className="text-[11px] text-charcoal-500 text-center">
+                      ✨ This custom card will be attached to each generated invitation and displayed on the guest&apos;s link.
+                    </p>
+                  </div>
+                ) : (
+                  <label className="block cursor-pointer">
+                    <div className="p-5 rounded-xl border-2 border-dashed border-[#D8B66E]/60 hover:border-[#D8B66E] bg-[#FAF6F0]/60 hover:bg-[#FAF6F0] transition-colors text-center space-y-2">
+                      <div className="w-9 h-9 rounded-full bg-brand-50 border border-brand-200 text-brand-600 mx-auto flex items-center justify-center">
+                        <Upload className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-charcoal-900">
+                          Upload your own custom card / design
+                        </p>
+                        <p className="text-[11px] text-charcoal-500 mt-0.5">
+                          Supports JPG, PNG, WebP up to 10MB (Wedding card, flyer, custom artwork)
+                        </p>
+                      </div>
+                      <span className="inline-flex items-center text-xs font-semibold text-brand-600 bg-white px-3.5 py-1.5 rounded-lg border border-surface-border shadow-2xs hover:bg-brand-50 transition-colors">
+                        Select Card Image
+                      </span>
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) {
+                          setCustomCardFile(f);
+                          setCustomCardPreviewUrl(URL.createObjectURL(f));
+                        }
+                      }}
+                      className="hidden"
+                    />
+                  </label>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* 3. Language & Custom WhatsApp Message */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center space-x-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-charcoal-700">
+                  Default WhatsApp Message
+                </label>
+              </div>
+
+              {/* Language Switch */}
+              <div className="flex items-center rounded-lg bg-surface-warm p-0.5 border border-surface-border text-xs">
+                <button
+                  type="button"
+                  onClick={() => handleLanguageChange('EN')}
+                  className={`px-2.5 py-0.5 rounded-md font-medium text-[11px] transition-all ${language === 'EN'
+                    ? 'bg-brand-600 text-white shadow-xs'
+                    : 'text-charcoal-600 hover:text-charcoal-900'
+                    }`}
+                >
+                  English
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleLanguageChange('HI')}
+                  className={`px-2.5 py-0.5 rounded-md font-medium text-[11px] transition-all ${language === 'HI'
+                    ? 'bg-brand-600 text-white shadow-xs'
+                    : 'text-charcoal-600 hover:text-charcoal-900'
+                    }`}
+                >
+                  हिंदी (Hindi)
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Placeholder Chips */}
+            <div className="flex flex-wrap items-center gap-1 mb-2">
+              {['{{guestName}}', '{{eventName}}', '{{eventDate}}', '{{venue}}', '{{invitationUrl}}', '{{hostName}}'].map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => insertTag(tag)}
+                  className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-surface-warm border border-surface-border text-charcoal-600 hover:text-brand-600 hover:border-brand-300"
+                >
+                  {tag}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setCustomMessage(DEFAULT_WHATSAPP_TEMPLATES[language])}
+                className="text-[10px] text-charcoal-400 hover:text-charcoal-700 ml-auto flex items-center space-x-1"
+                title="Reset message"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span>Reset</span>
+              </button>
+            </div>
+
             <textarea
-              rows={3}
+              rows={5}
               value={customMessage}
               onChange={(e) => setCustomMessage(e.target.value)}
-              placeholder="e.g. Namaste {{guestName}}, you are warmly invited to {{eventName}} on {{eventDate}} at {{venue}}! RSVP: {{invitationUrl}}"
-              className="w-full px-3 py-2 rounded-xl border border-surface-border bg-white text-xs text-charcoal-900 font-mono focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="w-full px-3 py-2 rounded-xl border border-surface-border bg-surface-card text-xs text-charcoal-900 font-mono focus:outline-none focus:ring-2 focus:ring-brand-500 leading-relaxed"
             />
             <p className="text-[11px] text-charcoal-400 mt-1">
               Placeholders will be automatically resolved for each guest upon dispatch.
@@ -282,10 +376,12 @@ export function GenerateInvitationsModal({
               </button>
             </div>
 
-            <div className="border border-surface-border rounded-xl divide-y divide-surface-border max-h-36 overflow-y-auto">
-              {eventGuests.length === 0 ? (
+            <div className="border border-surface-border rounded-xl divide-y divide-surface-border max-h-40 overflow-y-auto">
+              {loading ? (
+                <div className="p-4 text-center text-xs text-charcoal-400">Loading guests...</div>
+              ) : eventGuests.length === 0 ? (
                 <div className="p-4 text-center text-xs text-charcoal-400">
-                  No guests assigned to this event yet.
+                  No guests assigned to this celebration yet. Please add guests to the event first.
                 </div>
               ) : (
                 eventGuests.map((g) => {
@@ -294,9 +390,8 @@ export function GenerateInvitationsModal({
                     <div
                       key={g.id}
                       onClick={() => handleToggleGuest(g.id)}
-                      className={`px-3 py-2 flex items-center justify-between text-xs cursor-pointer ${
-                        isChecked ? 'bg-brand-50/40' : 'hover:bg-surface-warm/40'
-                      }`}
+                      className={`px-3 py-2 flex items-center justify-between text-xs cursor-pointer ${isChecked ? 'bg-brand-50/40' : 'hover:bg-surface-warm/40'
+                        }`}
                     >
                       <div className="flex items-center space-x-2">
                         <input

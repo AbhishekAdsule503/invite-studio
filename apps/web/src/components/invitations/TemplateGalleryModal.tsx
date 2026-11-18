@@ -58,6 +58,8 @@ export function TemplateGalleryModal({
   );
   const [createImageFile, setCreateImageFile] = useState<File | null>(null);
   const [createImagePreview, setCreateImagePreview] = useState<string>('');
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string>('');
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [creating, setCreating] = useState(false);
 
   const loadTemplates = React.useCallback(async () => {
@@ -83,15 +85,37 @@ export function TemplateGalleryModal({
     loadTemplates();
   }, [isOpen, loadTemplates]);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+
+      // Validate file size (max 5 MB)
       if (file.size > 5 * 1024 * 1024) {
         setError('Image file must be under 5MB.');
         return;
       }
+
+      // Validate file types: JPG, PNG, WEBP
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+      if (!allowedTypes.includes(file.type.toLowerCase())) {
+        setError('Invalid image format. Allowed formats: JPG, PNG, WebP.');
+        return;
+      }
+
+      setError('');
       setCreateImageFile(file);
       setCreateImagePreview(URL.createObjectURL(file));
+
+      // Upload immediately via authenticated API client
+      setUploadingImage(true);
+      try {
+        const uploadRes = await invitationService.uploadTemplateImage(file);
+        setUploadedImageUrl(uploadRes.imageUrl);
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Image upload failed.');
+      } finally {
+        setUploadingImage(false);
+      }
     }
   };
 
@@ -102,57 +126,43 @@ export function TemplateGalleryModal({
       return;
     }
 
+    if (uploadingImage) {
+      setError('Please wait for the image upload to complete.');
+      return;
+    }
+
     setCreating(true);
     setError('');
     try {
-      let previewImageUrl: string | undefined = undefined;
+      let previewImageUrl: string | undefined = uploadedImageUrl || undefined;
 
-      if (createImageFile) {
-        // Prepare FormData for backend file upload
-        const formData = new FormData();
-        formData.append('image', createImageFile);
-        formData.append('title', createTitle);
-        formData.append('eventType', createCategory);
-        formData.append('defaultMessage', createMessage);
-
-        // Upload through fetch to /api/v1/templates/upload
-        const token = localStorage.getItem('token');
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'}/templates/upload`,
-          {
-            method: 'POST',
-            headers: {
-              ...(token ? { Authorization: `Bearer ${token}` } : {})
-            },
-            body: formData
-          }
-        );
-
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.message || 'Image upload failed.');
-        }
-
-        const data = await res.json();
-        previewImageUrl = data.template.previewImageUrl;
-      } else {
-        await invitationService.createCustomTemplate({
-          title: createTitle,
-          eventType: createCategory,
-          previewImageUrl,
-          defaultMessage: createMessage
-        });
+      // If user selected file but it hasn't been uploaded yet
+      if (createImageFile && !previewImageUrl) {
+        setUploadingImage(true);
+        const uploadRes = await invitationService.uploadTemplateImage(createImageFile);
+        previewImageUrl = uploadRes.imageUrl;
+        setUploadedImageUrl(uploadRes.imageUrl);
+        setUploadingImage(false);
       }
+
+      await invitationService.createCustomTemplate({
+        title: createTitle,
+        eventType: createCategory,
+        previewImageUrl,
+        defaultMessage: createMessage
+      });
 
       setShowCreateForm(false);
       setCreateTitle('');
       setCreateImageFile(null);
       setCreateImagePreview('');
+      setUploadedImageUrl('');
       await loadTemplates();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to create template.');
     } finally {
       setCreating(false);
+      setUploadingImage(false);
     }
   };
 
@@ -215,7 +225,7 @@ export function TemplateGalleryModal({
                     placeholder="e.g. Royal Golden Peacock Invitation"
                     value={createTitle}
                     onChange={(e) => setCreateTitle(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-surface-border bg-white text-sm text-charcoal-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    className="w-full px-3 py-2 rounded-xl border border-surface-border bg-surface-card text-sm text-charcoal-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
                   />
                 </div>
 
@@ -226,7 +236,7 @@ export function TemplateGalleryModal({
                   <select
                     value={createCategory}
                     onChange={(e) => setCreateCategory(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-surface-border bg-white text-sm text-charcoal-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    className="w-full px-3 py-2 rounded-xl border border-surface-border bg-surface-card text-sm text-charcoal-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
                   >
                     {CATEGORIES.filter((c) => c.id !== 'ALL').map((c) => (
                       <option key={c.id} value={c.id}>
@@ -244,7 +254,7 @@ export function TemplateGalleryModal({
                     rows={4}
                     value={createMessage}
                     onChange={(e) => setCreateMessage(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-surface-border bg-white text-xs font-mono text-charcoal-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    className="w-full px-3 py-2 rounded-xl border border-surface-border bg-surface-card text-xs font-mono text-charcoal-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
                   />
                   <p className="text-[11px] text-charcoal-400 mt-1">
                     Supports &#123;&#123;guestName&#125;&#125;, &#123;&#123;eventName&#125;&#125;, &#123;&#123;eventDate&#125;&#125;, &#123;&#123;venue&#125;&#125;, &#123;&#123;invitationUrl&#125;&#125;
@@ -257,20 +267,43 @@ export function TemplateGalleryModal({
                   </label>
                   <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-surface-border border-dashed rounded-xl hover:border-brand-400 transition-colors bg-surface-warm/40">
                     <div className="space-y-1 text-center">
-                      <Upload className="mx-auto h-8 w-8 text-charcoal-400" />
-                      <div className="flex text-xs text-charcoal-600">
-                        <label className="relative cursor-pointer font-medium text-brand-600 hover:text-brand-500">
-                          <span>Upload a file</span>
-                          <input
-                            type="file"
-                            accept="image/jpeg,image/png,image/webp"
-                            onChange={handleImageChange}
-                            className="sr-only"
-                          />
-                        </label>
-                        <p className="pl-1">or drag and drop</p>
-                      </div>
-                      <p className="text-[10px] text-charcoal-400">PNG, JPG, WebP up to 5MB</p>
+                      {uploadingImage ? (
+                        <div className="py-2 flex flex-col items-center space-y-2">
+                          <div className="w-6 h-6 border-2 border-brand-600 border-t-transparent rounded-full animate-spin" />
+                          <p className="text-xs text-charcoal-600 font-medium">Uploading image to server...</p>
+                        </div>
+                      ) : uploadedImageUrl ? (
+                        <div className="py-1 flex flex-col items-center space-y-1">
+                          <Check className="mx-auto h-6 w-6 text-emerald-600" />
+                          <p className="text-xs text-emerald-700 font-medium">Image uploaded successfully</p>
+                          <label className="text-[11px] text-brand-600 hover:underline cursor-pointer font-medium">
+                            <span>Replace image</span>
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp"
+                              onChange={handleImageChange}
+                              className="sr-only"
+                            />
+                          </label>
+                        </div>
+                      ) : (
+                        <>
+                          <Upload className="mx-auto h-8 w-8 text-charcoal-400" />
+                          <div className="flex text-xs text-charcoal-600 justify-center">
+                            <label className="relative cursor-pointer font-medium text-brand-600 hover:text-brand-500">
+                              <span>Upload a file</span>
+                              <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                onChange={handleImageChange}
+                                className="sr-only"
+                              />
+                            </label>
+                            <p className="pl-1">or drag and drop</p>
+                          </div>
+                          <p className="text-[10px] text-charcoal-400">PNG, JPG, WebP up to 5MB</p>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -281,18 +314,18 @@ export function TemplateGalleryModal({
                 <p className="text-xs font-semibold uppercase tracking-wider text-charcoal-500 mb-3">
                   Live Design Preview
                 </p>
-                <div className="w-full max-w-sm bg-white rounded-2xl shadow-md border border-surface-border overflow-hidden">
+                <div className="w-full max-w-sm bg-surface-card rounded-2xl shadow-md border border-surface-border overflow-hidden">
                   <div className="h-48 bg-gradient-to-tr from-brand-800 to-brand-600 relative flex items-center justify-center overflow-hidden">
-                    {createImagePreview ? (
+                    {uploadedImageUrl || createImagePreview ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
                       <img
-                        src={createImagePreview}
+                        src={uploadedImageUrl || createImagePreview}
                         alt="Preview"
                         className="w-full h-full object-cover"
                       />
                     ) : (
                       <div className="text-center text-white/80 p-4">
-                        <Sparkles className="w-8 h-8 mx-auto mb-1 text-amber-300" />
+                        <Sparkles className="w-8 h-8 mx-auto mb-1 text-brand-accent" />
                         <span className="text-xs font-medium">Card Creative Art</span>
                       </div>
                     )}
@@ -317,12 +350,24 @@ export function TemplateGalleryModal({
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={() => setShowCreateForm(false)}
-                disabled={creating}
+                onClick={() => {
+                  setShowCreateForm(false);
+                  setCreateImageFile(null);
+                  setCreateImagePreview('');
+                  setUploadedImageUrl('');
+                  setError('');
+                }}
+                disabled={creating || uploadingImage}
               >
                 Cancel
               </Button>
-              <Button type="submit" variant="primary" size="sm" isLoading={creating}>
+              <Button
+                type="submit"
+                variant="primary"
+                size="sm"
+                isLoading={creating || uploadingImage}
+                disabled={uploadingImage}
+              >
                 Save Custom Template
               </Button>
             </div>
@@ -409,7 +454,7 @@ export function TemplateGalleryModal({
             <div className="w-full md:w-80 bg-surface-warm/40 p-6 flex flex-col justify-between overflow-y-auto">
               {selectedPreview ? (
                 <div className="space-y-4">
-                  <div className="rounded-2xl border border-surface-border bg-white overflow-hidden shadow-xs">
+                  <div className="rounded-2xl border border-surface-border bg-surface-card overflow-hidden shadow-xs">
                     <div className="h-40 bg-surface-warm relative flex items-center justify-center">
                       {selectedPreview.previewImageUrl ? (
                         /* eslint-disable-next-line @next/next/no-img-element */
@@ -419,7 +464,7 @@ export function TemplateGalleryModal({
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <Sparkles className="w-8 h-8 text-brand-500" />
+                        <Sparkles className="w-8 h-8 text-brand-accent" />
                       )}
                     </div>
                     <div className="p-4 space-y-2">
@@ -441,7 +486,7 @@ export function TemplateGalleryModal({
                     <p className="text-xs font-semibold uppercase tracking-wider text-charcoal-700 mb-1">
                       Default Message Template
                     </p>
-                    <div className="p-3 rounded-xl bg-white border border-surface-border text-xs text-charcoal-600 font-mono leading-relaxed">
+                    <div className="p-3 rounded-xl bg-surface-card border border-surface-border text-xs text-charcoal-600 font-mono leading-relaxed">
                       {selectedPreview.defaultMessage}
                     </div>
                   </div>

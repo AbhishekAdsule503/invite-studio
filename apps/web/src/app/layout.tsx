@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Inter, Plus_Jakarta_Sans } from 'next/font/google';
+import { Inter, Plus_Jakarta_Sans, Cormorant_Garamond } from 'next/font/google';
 import './globals.css';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -17,9 +17,17 @@ const plusJakarta = Plus_Jakarta_Sans({
   display: 'swap',
 });
 
+const cormorant = Cormorant_Garamond({
+  subsets: ['latin'],
+  variable: '--font-serif',
+  weight: ['400', '500', '600', '700'],
+  style: ['normal', 'italic'],
+  display: 'swap',
+});
+
 export const metadata: Metadata = {
-  title: 'INVITE STUDIO | Create. Invite. Celebrate.',
-  description: 'Premium, modern invitation and guest management platform for everyday celebrations and families.',
+  title: 'INVITE STUDIO | Atelier of Celebrations — Digital Invitations & Guest Management',
+  description: 'Digital India deserves digital invitations. Manage reusable guest lists, organize relationships, dispatch personalized WhatsApp invites, and track aggregate RSVPs from one dashboard.',
 };
 
 export default function RootLayout({
@@ -28,7 +36,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${plusJakarta.variable}`}>
+    <html lang="en" className={`${inter.variable} ${plusJakarta.variable} ${cormorant.variable} scroll-smooth`}>
       <body className="min-h-screen bg-surface-ivory text-charcoal-900 antialiased flex flex-col justify-between selection:bg-brand-100 selection:text-brand-900">
         <AuthProvider>
           <Navbar />

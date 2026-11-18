@@ -1,38 +1,38 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Send,
   CheckCircle2,
   MessageSquare,
   ExternalLink,
   Sparkles,
-  Palette,
   Users,
   Search,
-  Filter,
   RefreshCw,
   Copy,
   Check,
   Trash2,
   Clock,
   Play,
-  ArrowRight,
-  AlertCircle
+  AlertCircle,
+  Share2
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { Card, CardTitle, CardDescription } from '@/components/ui/Card';
+import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { useAuth } from '@/features/auth/AuthContext';
 import { eventService, EventItem } from '@/services/event.service';
 import { invitationService, InvitationItem } from '@/services/invitation.service';
 import { GenerateInvitationsModal } from '@/components/invitations/GenerateInvitationsModal';
-import { TemplateGalleryModal } from '@/components/invitations/TemplateGalleryModal';
 import { WhatsAppDispatchStepperModal } from '@/components/invitations/WhatsAppDispatchStepperModal';
 
 export default function InvitationsPage() {
+  const { user } = useAuth();
   const [events, setEvents] = useState<EventItem[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string>('');
   const [invitations, setInvitations] = useState<InvitationItem[]>([]);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING' | 'SENT'>('ALL');
   const [loading, setLoading] = useState(false);
@@ -41,8 +41,8 @@ export default function InvitationsPage() {
 
   // Modals state
   const [showGenerateModal, setShowGenerateModal] = useState(false);
-  const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [showStepperModal, setShowStepperModal] = useState(false);
+  const [stepperInvitations, setStepperInvitations] = useState<InvitationItem[]>([]);
   const [stepperStartIndex, setStepperStartIndex] = useState(0);
 
   const loadEvents = useCallback(async () => {
@@ -66,6 +66,7 @@ export default function InvitationsPage() {
   const loadInvitations = useCallback(async () => {
     if (!selectedEventId) {
       setInvitations([]);
+      setSelectedIds(new Set());
       return;
     }
 
@@ -79,6 +80,7 @@ export default function InvitationsPage() {
         limit: 100
       });
       setInvitations(res.invitations);
+      setSelectedIds(new Set());
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load invitations.');
     } finally {
@@ -117,8 +119,10 @@ export default function InvitationsPage() {
     }
   };
 
+  // Launch modal for all or pending invitations
   const startSequentialStepper = (startFromPending = true) => {
     if (invitations.length === 0) return;
+    setStepperInvitations(invitations);
     if (startFromPending) {
       const firstPendingIdx = invitations.findIndex((i) => i.whatsappStatus === 'PENDING');
       setStepperStartIndex(firstPendingIdx !== -1 ? firstPendingIdx : 0);
@@ -126,6 +130,38 @@ export default function InvitationsPage() {
       setStepperStartIndex(0);
     }
     setShowStepperModal(true);
+  };
+
+  // Launch modal for specifically selected guests in bulk
+  const startSelectedStepper = () => {
+    const selectedList = invitations.filter((inv) => selectedIds.has(inv.id));
+    if (selectedList.length === 0) return;
+    setStepperInvitations(selectedList);
+    setStepperStartIndex(0);
+    setShowStepperModal(true);
+  };
+
+  // Launch modal for single guest row
+  const startSingleGuestStepper = (inv: InvitationItem) => {
+    setStepperInvitations([inv]);
+    setStepperStartIndex(0);
+    setShowStepperModal(true);
+  };
+
+  // Table row selection toggles
+  const handleToggleSelectRow = (id: string) => {
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedIds(next);
+  };
+
+  const handleSelectAllRows = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(new Set(invitations.map((i) => i.id)));
+    } else {
+      setSelectedIds(new Set());
+    }
   };
 
   // Metrics calculation
@@ -139,24 +175,20 @@ export default function InvitationsPage() {
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="font-display font-extrabold text-3xl text-charcoal-900 tracking-tight">
-            Personalized Invitations
-          </h1>
+          <div className="flex items-center space-x-2">
+            <h1 className="font-display font-extrabold text-3xl text-charcoal-900 tracking-tight">
+              Personalized Invitations
+            </h1>
+            <Badge variant="brand" className="text-xs">
+              Universal Luxury Design
+            </Badge>
+          </div>
           <p className="mt-1 text-sm text-charcoal-500">
-            Design templates, generate secure individual invite links, and dispatch via WhatsApp Click-to-Chat.
+            Generate secure digital luxury invitation links, preview bilingual messages, and dispatch via WhatsApp with optional card attachment.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowTemplateModal(true)}
-          >
-            <Palette className="w-4 h-4 mr-1.5 text-brand-600" />
-            <span>Design Templates</span>
-          </Button>
-
           <Button
             variant="primary"
             size="sm"
@@ -187,7 +219,7 @@ export default function InvitationsPage() {
         <div className="flex-1">
           <span className="font-semibold text-emerald-950">WhatsApp Click-to-Chat Flow: </span>
           <span>
-            INVITE STUDIO prepares personalized greeting messages with unique cryptographic RSVP tokens. Clicking &quot;Open WhatsApp&quot; launches your WhatsApp with the chat pre-filled. You press Send manually in WhatsApp and mark the invitation as sent. No third-party spam bots or unverified bulk automation.
+            INVITE STUDIO prepares personalized bilingual greeting messages with unique cryptographic RSVP tokens and optional attached luxury card images. Clicking &quot;Share on WhatsApp&quot; launches your WhatsApp with the chat pre-filled. You press Send manually in WhatsApp and mark the invitation as sent. No spam bots or unverified bulk automation.
           </span>
         </div>
       </div>
@@ -206,7 +238,7 @@ export default function InvitationsPage() {
               <select
                 value={selectedEventId}
                 onChange={(e) => setSelectedEventId(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-surface-border bg-white text-sm text-charcoal-900 font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full px-3 py-2 rounded-xl border border-surface-border bg-surface-card text-sm text-charcoal-900 font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
                 {events.map((ev) => (
                   <option key={ev.id} value={ev.id}>
@@ -219,7 +251,7 @@ export default function InvitationsPage() {
 
           {currentEvent && (
             <div className="mt-3 pt-3 border-t border-surface-border text-xs text-charcoal-500 flex items-center justify-between">
-              <span>{currentEvent.venue}</span>
+              <span className="truncate max-w-[150px]">{currentEvent.venue}</span>
               <Badge variant="brand" className="text-[10px]">
                 {currentEvent.eventType}
               </Badge>
@@ -256,7 +288,7 @@ export default function InvitationsPage() {
               {sentCount}
             </h3>
             <span className="text-[11px] text-charcoal-500">
-              {totalCount > 0 ? `${Math.round((sentCount / totalCount) * 100)}% delivered` : '0%'}
+              {totalCount > 0 ? `${Math.round((sentCount / totalCount) * 100)}% sent` : '0%'}
             </span>
           </div>
         </Card>
@@ -292,6 +324,36 @@ export default function InvitationsPage() {
         </Card>
       </div>
 
+      {/* Bulk Action Bar (when guests are selected) */}
+      {selectedIds.size > 0 && (
+        <div className="p-4 rounded-xl bg-brand-50/80 border border-brand-200 flex flex-col sm:flex-row items-center justify-between gap-3 animate-in fade-in">
+          <div className="flex items-center space-x-2 text-xs font-semibold text-brand-900">
+            <CheckCircle2 className="w-4 h-4 text-brand-600" />
+            <span>{selectedIds.size} guest(s) selected for WhatsApp sharing</span>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSelectedIds(new Set())}
+              className="text-xs"
+            >
+              Deselect All
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={startSelectedStepper}
+              className="bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20 text-xs"
+            >
+              <Share2 className="w-3.5 h-3.5 mr-1.5" />
+              <span>Dispatch {selectedIds.size} Selected Guests</span>
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Filter and Table Toolbar */}
       <Card className="p-0 overflow-hidden">
         <div className="p-4 sm:p-6 border-b border-surface-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface-card">
@@ -303,14 +365,14 @@ export default function InvitationsPage() {
                 placeholder="Search guest name or number..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 pr-3 py-1.5 rounded-xl border border-surface-border bg-white text-xs text-charcoal-900 focus:outline-none focus:ring-2 focus:ring-brand-500 w-64"
+                className="pl-9 pr-3 py-1.5 rounded-xl border border-surface-border bg-surface-card text-xs text-charcoal-900 focus:outline-none focus:ring-2 focus:ring-brand-500 w-64"
               />
             </div>
 
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as 'ALL' | 'PENDING' | 'SENT')}
-              className="px-3 py-1.5 rounded-xl border border-surface-border bg-white text-xs text-charcoal-700 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="px-3 py-1.5 rounded-xl border border-surface-border bg-surface-card text-xs text-charcoal-700 focus:outline-none focus:ring-2 focus:ring-brand-500"
             >
               <option value="ALL">All Status</option>
               <option value="PENDING">Pending Only</option>
@@ -339,8 +401,17 @@ export default function InvitationsPage() {
           <table className="w-full text-left text-sm">
             <thead className="bg-surface-warm border-b border-surface-border text-xs uppercase text-charcoal-500 font-semibold tracking-wider">
               <tr>
+                <th className="px-4 py-3.5 w-10 text-center">
+                  <input
+                    type="checkbox"
+                    checked={invitations.length > 0 && selectedIds.size === invitations.length}
+                    onChange={(e) => handleSelectAllRows(e.target.checked)}
+                    className="rounded border-surface-border text-brand-600 focus:ring-brand-500"
+                    title="Select all guests"
+                  />
+                </th>
                 <th className="px-6 py-3.5">Guest &amp; WhatsApp</th>
-                <th className="px-6 py-3.5">Template Design</th>
+                <th className="px-6 py-3.5">Celebration Details</th>
                 <th className="px-6 py-3.5">Public RSVP Link</th>
                 <th className="px-6 py-3.5">Dispatch Status</th>
                 <th className="px-6 py-3.5 text-right">Actions</th>
@@ -350,13 +421,13 @@ export default function InvitationsPage() {
             <tbody className="divide-y divide-surface-border">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-xs text-charcoal-400">
+                  <td colSpan={6} className="px-6 py-12 text-center text-xs text-charcoal-400">
                     Loading invitations...
                   </td>
                 </tr>
               ) : invitations.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center space-y-3">
+                  <td colSpan={6} className="px-6 py-12 text-center space-y-3">
                     <p className="text-sm font-semibold text-charcoal-700">No invitations generated yet</p>
                     <p className="text-xs text-charcoal-400 max-w-sm mx-auto">
                       Assign guests to this celebration and click Generate Invitations to create unique cryptographic links.
@@ -372,129 +443,134 @@ export default function InvitationsPage() {
                   </td>
                 </tr>
               ) : (
-                invitations.map((inv) => (
-                  <tr key={inv.id} className="hover:bg-surface-warm/50 transition-colors">
-                    {/* Guest info */}
-                    <td className="px-6 py-4">
-                      <div className="flex items-center space-x-2">
-                        <span className="font-semibold text-charcoal-900">{inv.eventGuest.name}</span>
-                        {inv.eventGuest.relation && (
-                          <Badge variant="default" className="text-[10px]">
-                            {inv.eventGuest.relation}
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="font-mono text-xs text-charcoal-500 mt-0.5">
-                        {inv.eventGuest.whatsappNumber}
-                      </p>
-                    </td>
+                invitations.map((inv) => {
+                  const isChecked = selectedIds.has(inv.id);
+                  return (
+                    <tr
+                      key={inv.id}
+                      className={`hover:bg-surface-warm/50 transition-colors ${isChecked ? 'bg-brand-50/20' : ''
+                        }`}
+                    >
+                      {/* Checkbox */}
+                      <td className="px-4 py-4 text-center">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => handleToggleSelectRow(inv.id)}
+                          className="rounded border-surface-border text-brand-600 focus:ring-brand-500"
+                        />
+                      </td>
 
-                    {/* Template Design */}
-                    <td className="px-6 py-4">
-                      {inv.template ? (
+                      {/* Guest info */}
+                      <td className="px-6 py-4">
                         <div className="flex items-center space-x-2">
-                          <div className="w-8 h-8 rounded-lg bg-surface-warm border border-surface-border overflow-hidden shrink-0 flex items-center justify-center">
-                            {inv.template.previewImageUrl ? (
-                              /* eslint-disable-next-line @next/next/no-img-element */
-                              <img
-                                src={inv.template.previewImageUrl}
-                                alt={inv.template.title}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <Palette className="w-4 h-4 text-brand-500" />
-                            )}
-                          </div>
-                          <span className="text-xs font-medium text-charcoal-800 line-clamp-1">
-                            {inv.template.title}
+                          <span className="font-semibold text-charcoal-900">{inv.eventGuest.name}</span>
+                          {inv.eventGuest.relation && (
+                            <Badge variant="default" className="text-[10px]">
+                              {inv.eventGuest.relation}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="font-mono text-xs text-charcoal-500 mt-0.5">
+                          {inv.eventGuest.whatsappNumber}
+                        </p>
+                      </td>
+
+                      {/* Celebration Details */}
+                      <td className="px-6 py-4">
+                        <span className="text-xs font-semibold text-charcoal-800 line-clamp-1">
+                          {currentEvent?.name || inv.eventName || 'Celebration Event'}
+                        </span>
+                        <div className="flex items-center space-x-1.5 text-[11px] text-charcoal-400 mt-0.5">
+                          <span>
+                            {currentEvent
+                              ? new Date(currentEvent.eventDate).toLocaleDateString()
+                              : ''}
+                          </span>
+                          <span>•</span>
+                          <span className="truncate max-w-[140px]">
+                            {currentEvent?.venue || inv.eventVenue}
                           </span>
                         </div>
-                      ) : (
-                        <span className="text-xs text-charcoal-400">Default Card</span>
-                      )}
-                    </td>
+                      </td>
 
-                    {/* RSVP Link */}
-                    <td className="px-6 py-4">
-                      <div className="flex items-center space-x-2">
-                        <a
-                          href={inv.invitationUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="font-mono text-xs text-brand-600 hover:text-brand-800 underline truncate max-w-[180px]"
-                        >
-                          /invite/{inv.token.substring(0, 8)}...
-                        </a>
-                        <button
-                          type="button"
-                          onClick={() => handleCopyLink(inv)}
-                          className="text-charcoal-400 hover:text-brand-600 p-1 rounded-md hover:bg-surface-warm transition-colors"
-                          title="Copy full invitation URL"
-                        >
-                          {copiedId === inv.id ? (
-                            <Check className="w-3.5 h-3.5 text-emerald-600" />
-                          ) : (
-                            <Copy className="w-3.5 h-3.5" />
-                          )}
-                        </button>
-                      </div>
-                    </td>
-
-                    {/* Status */}
-                    <td className="px-6 py-4">
-                      {inv.whatsappStatus === 'SENT' ? (
-                        <div className="space-y-0.5">
-                          <Badge variant="success">Sent</Badge>
-                          {inv.sentAt && (
-                            <p className="text-[10px] text-charcoal-400">
-                              {new Date(inv.sentAt).toLocaleDateString()}
-                            </p>
-                          )}
+                      {/* RSVP Link */}
+                      <td className="px-6 py-4">
+                        <div className="flex items-center space-x-2">
+                          <a
+                            href={inv.invitationUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-mono text-xs text-brand-600 hover:text-brand-800 underline truncate max-w-[180px]"
+                          >
+                            /invite/{inv.token.substring(0, 8)}...
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => handleCopyLink(inv)}
+                            className="text-charcoal-400 hover:text-brand-600 p-1 rounded-md hover:bg-surface-warm transition-colors"
+                            title="Copy full invitation URL"
+                          >
+                            {copiedId === inv.id ? (
+                              <Check className="w-3.5 h-3.5 text-emerald-600" />
+                            ) : (
+                              <Copy className="w-3.5 h-3.5" />
+                            )}
+                          </button>
                         </div>
-                      ) : (
-                        <Badge variant="default">Pending</Badge>
-                      )}
-                    </td>
+                      </td>
 
-                    {/* Actions */}
-                    <td className="px-6 py-4 text-right space-x-1.5 whitespace-nowrap">
-                      <a
-                        href={inv.whatsAppUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
+                      {/* Status */}
+                      <td className="px-6 py-4">
+                        {inv.whatsappStatus === 'SENT' ? (
+                          <div className="space-y-0.5">
+                            <Badge variant="success">Sent</Badge>
+                            {inv.sentAt && (
+                              <p className="text-[10px] text-charcoal-400">
+                                {new Date(inv.sentAt).toLocaleDateString()}
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <Badge variant="default">Pending</Badge>
+                        )}
+                      </td>
+
+                      {/* Actions */}
+                      <td className="px-6 py-4 text-right space-x-1.5 whitespace-nowrap">
                         <Button
                           variant="outline"
                           size="sm"
+                          onClick={() => startSingleGuestStepper(inv)}
                           className="border-emerald-600 text-emerald-700 hover:bg-emerald-50"
                         >
-                          <ExternalLink className="w-3.5 h-3.5 mr-1" />
+                          <Share2 className="w-3.5 h-3.5 mr-1" />
                           <span>WhatsApp</span>
                         </Button>
-                      </a>
 
-                      {inv.whatsappStatus !== 'SENT' && (
+                        {inv.whatsappStatus !== 'SENT' && (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => handleMarkSent(inv.id)}
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                            <span>Mark Sent</span>
+                          </Button>
+                        )}
+
                         <Button
-                          variant="secondary"
+                          variant="ghost"
                           size="sm"
-                          onClick={() => handleMarkSent(inv.id)}
+                          onClick={() => handleDeleteInvitation(inv.id)}
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
                         >
-                          <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-                          <span>Mark Sent</span>
+                          <Trash2 className="w-3.5 h-3.5" />
                         </Button>
-                      )}
-
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteInvitation(inv.id)}
-                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -514,21 +590,17 @@ export default function InvitationsPage() {
         />
       )}
 
-      {showTemplateModal && (
-        <TemplateGalleryModal
-          isOpen={showTemplateModal}
-          onClose={() => setShowTemplateModal(false)}
-          onSelectTemplate={() => {
-            setShowGenerateModal(true);
-          }}
-        />
-      )}
-
-      {showStepperModal && invitations.length > 0 && (
+      {showStepperModal && stepperInvitations.length > 0 && (
         <WhatsAppDispatchStepperModal
           isOpen={showStepperModal}
-          invitations={invitations}
+          invitations={stepperInvitations}
           startIndex={stepperStartIndex}
+          eventName={currentEvent?.name}
+          eventType={currentEvent?.eventType}
+          eventDate={currentEvent?.eventDate}
+          eventTime={currentEvent?.eventTime}
+          venue={currentEvent?.venue}
+          hostName={user?.name || currentEvent?.name || 'Your Host'}
           onClose={() => setShowStepperModal(false)}
           onStatusUpdated={() => {
             loadInvitations();

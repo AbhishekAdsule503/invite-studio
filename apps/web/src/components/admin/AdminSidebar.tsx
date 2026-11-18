@@ -45,14 +45,14 @@ export function AdminSidebar({ onCloseMobile }: AdminSidebarProps) {
       {/* Brand Header */}
       <div className="h-16 px-6 flex items-center justify-between border-b border-charcoal-800">
         <Link href="/admin/dashboard" className="flex items-center space-x-3 group">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-purple-600 to-brand-500 flex items-center justify-center text-white shadow-sm shadow-purple-500/20 group-hover:scale-105 transition-transform">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-800 to-brand-600 flex items-center justify-center text-white shadow-sm shadow-brand-700/20 group-hover:scale-105 transition-transform">
             <ShieldAlert className="w-4 h-4" />
           </div>
           <div>
             <span className="font-display font-extrabold text-base tracking-tight text-white block leading-tight">
               INVITE STUDIO
             </span>
-            <span className="text-[10px] font-bold tracking-wider uppercase text-purple-400 block leading-tight">
+            <span className="text-[10px] font-bold tracking-wider uppercase text-brand-accent block leading-tight">
               Super Admin
             </span>
           </div>
@@ -96,14 +96,14 @@ export function AdminSidebar({ onCloseMobile }: AdminSidebarProps) {
               className={cn(
                 'flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all group',
                 isActive
-                  ? 'bg-purple-600/20 text-purple-300 font-semibold border border-purple-500/30'
+                  ? 'bg-brand-600/25 text-brand-200 font-semibold border border-brand-500/30'
                   : 'text-charcoal-400 hover:text-white hover:bg-charcoal-900'
               )}
             >
               <Icon
                 className={cn(
                   'w-4 h-4 transition-transform group-hover:scale-110',
-                  isActive ? 'text-purple-400' : 'text-charcoal-500 group-hover:text-charcoal-300'
+                  isActive ? 'text-brand-accent' : 'text-charcoal-500 group-hover:text-charcoal-300'
                 )}
               />
               <span>{item.label}</span>
@@ -116,14 +116,14 @@ export function AdminSidebar({ onCloseMobile }: AdminSidebarProps) {
       <div className="p-3 border-t border-charcoal-800/80 bg-charcoal-900/40">
         <div className="p-2.5 rounded-2xl bg-charcoal-900 border border-charcoal-800 flex items-center justify-between">
           <div className="flex items-center space-x-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-300 flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-brand-500/20 text-brand-200 flex items-center justify-center shrink-0">
               <UserIcon className="w-4 h-4" />
             </div>
             <div className="min-w-0">
               <p className="text-xs font-semibold text-white truncate">
                 {user?.name || user?.mobile || 'Super Admin'}
               </p>
-              <span className="text-[10px] text-purple-400 font-bold block uppercase tracking-wider">
+              <span className="text-[10px] text-brand-accent font-bold block uppercase tracking-wider">
                 Full Privileges
               </span>
             </div>

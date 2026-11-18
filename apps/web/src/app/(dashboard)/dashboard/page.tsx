@@ -112,7 +112,7 @@ export default function DashboardPage() {
               <p className="text-xs font-semibold uppercase tracking-wider text-charcoal-500">
                 Total Invited
               </p>
-              <div className="w-8 h-8 rounded-lg bg-indigo-50 text-brand-600 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center">
                 <Users className="w-4 h-4" />
               </div>
             </div>
@@ -197,7 +197,7 @@ export default function DashboardPage() {
       </div>
 
       {/* RSVP Privacy Banner */}
-      <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-100 flex items-start space-x-3 text-sm text-brand-900">
+      <div className="p-4 rounded-2xl bg-brand-50/70 border border-brand-200/80 flex items-start space-x-3 text-sm text-brand-900">
         <ShieldCheck className="w-5 h-5 text-brand-600 shrink-0 mt-0.5" />
         <div>
           <span className="font-semibold">Privacy-First Architecture: </span>

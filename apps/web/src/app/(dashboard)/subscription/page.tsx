@@ -367,7 +367,7 @@ export default function SubscriptionOverviewPage() {
                 <span className="text-xs font-semibold uppercase tracking-wider text-charcoal-500">
                   Capacity Per Event
                 </span>
-                <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
                   <Crown className="w-4 h-4" />
                 </div>
               </div>

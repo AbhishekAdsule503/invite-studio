@@ -91,7 +91,7 @@ export default function AdminSupportPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-charcoal-800 pb-6">
         <div>
           <div className="flex items-center space-x-2">
-            <Badge variant="brand" className="bg-purple-500/20 text-purple-300 border-purple-500/30 text-[10px] uppercase font-bold">
+            <Badge variant="brand" className="bg-brand-500/20 text-brand-200 border-brand-500/30 text-[10px] uppercase font-bold">
               Host Assistance
             </Badge>
             <span className="text-charcoal-600">•</span>
@@ -121,7 +121,7 @@ export default function AdminSupportPage() {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-xl bg-charcoal-900 border border-charcoal-800 px-3 py-2 text-charcoal-300 focus:outline-hidden focus:border-purple-500 text-xs"
+          className="rounded-xl bg-charcoal-900 border border-charcoal-800 px-3 py-2 text-charcoal-300 focus:outline-hidden focus:border-brand-500 text-xs"
         >
           <option value="">All Statuses</option>
           <option value="OPEN">Open</option>
@@ -133,7 +133,7 @@ export default function AdminSupportPage() {
         <select
           value={priorityFilter}
           onChange={(e) => setPriorityFilter(e.target.value)}
-          className="rounded-xl bg-charcoal-900 border border-charcoal-800 px-3 py-2 text-charcoal-300 focus:outline-hidden focus:border-purple-500 text-xs"
+          className="rounded-xl bg-charcoal-900 border border-charcoal-800 px-3 py-2 text-charcoal-300 focus:outline-hidden focus:border-brand-500 text-xs"
         >
           <option value="">All Priorities</option>
           <option value="LOW">Low</option>
@@ -145,7 +145,7 @@ export default function AdminSupportPage() {
         <select
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value)}
-          className="rounded-xl bg-charcoal-900 border border-charcoal-800 px-3 py-2 text-charcoal-300 focus:outline-hidden focus:border-purple-500 text-xs"
+          className="rounded-xl bg-charcoal-900 border border-charcoal-800 px-3 py-2 text-charcoal-300 focus:outline-hidden focus:border-brand-500 text-xs"
         >
           <option value="">All Categories</option>
           <option value="BILLING">Billing &amp; Payments</option>
@@ -239,7 +239,7 @@ export default function AdminSupportPage() {
                         size="sm"
                         variant="outline"
                         onClick={() => openTicketModal(t)}
-                        className="border-charcoal-700 text-purple-300 hover:text-white text-xs px-2.5 py-1 h-auto"
+                        className="border-charcoal-700 text-brand-accent hover:text-white text-xs px-2.5 py-1 h-auto"
                       >
                         <MessageSquare className="w-3.5 h-3.5 mr-1" />
                         <span>Manage</span>
@@ -259,7 +259,7 @@ export default function AdminSupportPage() {
           <div className="bg-charcoal-900 rounded-3xl max-w-lg w-full p-6 border border-charcoal-800 text-white shadow-2xl animate-in fade-in zoom-in-95 duration-150 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-charcoal-800">
               <div className="min-w-0 pr-4">
-                <span className="text-[10px] font-mono text-purple-400 uppercase font-bold">
+                <span className="text-[10px] font-mono text-brand-accent uppercase font-bold">
                   {selectedTicket.category} • {selectedTicket.priority}
                 </span>
                 <h3 className="font-display font-bold text-base text-white truncate">
@@ -292,7 +292,7 @@ export default function AdminSupportPage() {
                   <select
                     value={newStatus}
                     onChange={(e) => setNewStatus(e.target.value)}
-                    className="w-full rounded-xl bg-charcoal-800 border border-charcoal-700 px-3 py-2 text-white focus:outline-hidden focus:border-purple-500"
+                    className="w-full rounded-xl bg-charcoal-800 border border-charcoal-700 px-3 py-2 text-white focus:outline-hidden focus:border-brand-500"
                   >
                     <option value="OPEN">OPEN</option>
                     <option value="IN_PROGRESS">IN_PROGRESS</option>
@@ -306,7 +306,7 @@ export default function AdminSupportPage() {
                   <select
                     value={newPriority}
                     onChange={(e) => setNewPriority(e.target.value)}
-                    className="w-full rounded-xl bg-charcoal-800 border border-charcoal-700 px-3 py-2 text-white focus:outline-hidden focus:border-purple-500"
+                    className="w-full rounded-xl bg-charcoal-800 border border-charcoal-700 px-3 py-2 text-white focus:outline-hidden focus:border-brand-500"
                   >
                     <option value="LOW">LOW</option>
                     <option value="MEDIUM">MEDIUM</option>
@@ -325,7 +325,7 @@ export default function AdminSupportPage() {
                   value={adminNotes}
                   onChange={(e) => setAdminNotes(e.target.value)}
                   placeholder="Record explanation, resolution details, or guidance provided to host..."
-                  className="w-full rounded-xl bg-charcoal-800 border border-charcoal-700 p-2.5 text-white focus:outline-hidden focus:border-purple-500 leading-relaxed"
+                  className="w-full rounded-xl bg-charcoal-800 border border-charcoal-700 p-2.5 text-white focus:outline-hidden focus:border-brand-500 leading-relaxed"
                 />
               </div>
 
@@ -344,7 +344,7 @@ export default function AdminSupportPage() {
                   type="submit"
                   size="sm"
                   disabled={updating}
-                  className="bg-purple-600 hover:bg-purple-500 text-white text-xs"
+                  className="bg-brand-600 hover:bg-brand-500 text-white text-xs"
                 >
                   {updating ? 'Saving...' : 'Update Ticket'}
                 </Button>

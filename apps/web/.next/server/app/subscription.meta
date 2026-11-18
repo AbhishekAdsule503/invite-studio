@@ -1,0 +1,15 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/(dashboard)/layout,_N_T_/(dashboard)/subscription/layout,_N_T_/(dashboard)/subscription/page,_N_T_/subscription"
+  },
+  "routeCache": {
+    "key": "/route-cache/APP_PAGE/e8e00da3c368ea893bc949d76c6e72ece220db6b2166ffa24cf09329a02a2c60/$/subscription",
+    "owner": {
+      "kind": "APP_PAGE",
+      "sourceRoute": "/(dashboard)/subscription/page"
+    },
+    "isFallback": false
+  }
+}

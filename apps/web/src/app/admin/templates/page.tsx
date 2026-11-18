@@ -124,7 +124,7 @@ export default function AdminTemplatesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-charcoal-800 pb-6">
         <div>
           <div className="flex items-center space-x-2">
-            <Badge variant="brand" className="bg-purple-500/20 text-purple-300 border-purple-500/30 text-[10px] uppercase font-bold">
+            <Badge variant="brand" className="bg-brand-500/20 text-brand-200 border-brand-500/30 text-[10px] uppercase font-bold">
               Invitation Studio
             </Badge>
             <span className="text-charcoal-600">•</span>
@@ -141,7 +141,7 @@ export default function AdminTemplatesPage() {
         <Button
           onClick={openCreateModal}
           size="sm"
-          className="bg-purple-600 hover:bg-purple-500 text-white text-xs space-x-1.5 self-start sm:self-auto"
+          className="bg-brand-600 hover:bg-brand-500 text-white text-xs space-x-1.5 self-start sm:self-auto"
         >
           <Plus className="w-3.5 h-3.5" />
           <span>Add System Template</span>
@@ -154,7 +154,7 @@ export default function AdminTemplatesPage() {
           onClick={() => setSelectedOccasion('')}
           className={`px-3 py-1.5 rounded-xl font-medium transition-colors ${
             selectedOccasion === ''
-              ? 'bg-purple-600 text-white font-semibold'
+              ? 'bg-brand-600 text-white font-semibold'
               : 'bg-charcoal-900 text-charcoal-400 hover:text-white border border-charcoal-800'
           }`}
         >
@@ -168,7 +168,7 @@ export default function AdminTemplatesPage() {
               onClick={() => setSelectedOccasion(occ)}
               className={`px-3 py-1.5 rounded-xl font-medium transition-colors whitespace-nowrap ${
                 selectedOccasion === occ
-                  ? 'bg-purple-600 text-white font-semibold'
+                  ? 'bg-brand-600 text-white font-semibold'
                   : 'bg-charcoal-900 text-charcoal-400 hover:text-white border border-charcoal-800'
               }`}
             >
@@ -197,9 +197,9 @@ export default function AdminTemplatesPage() {
               }`}
             >
               {/* Preview Banner */}
-              <div className="h-36 bg-gradient-to-tr from-charcoal-900 via-purple-950/40 to-charcoal-800 p-4 flex flex-col justify-between relative overflow-hidden border-b border-charcoal-800">
+              <div className="h-36 bg-gradient-to-tr from-charcoal-900 via-brand-950/40 to-charcoal-800 p-4 flex flex-col justify-between relative overflow-hidden border-b border-charcoal-800">
                 <div className="flex items-center justify-between z-10">
-                  <Badge variant="brand" className="bg-purple-500/20 text-purple-300 text-[9px] uppercase font-bold">
+                  <Badge variant="brand" className="bg-brand-500/20 text-brand-200 border-brand-500/30 text-[9px] uppercase font-bold">
                     {t.eventType?.replace(/_/g, ' ') || 'GENERAL'}
                   </Badge>
                   <Badge variant={t.isSystem ? 'success' : 'danger'} className="text-[9px] uppercase font-bold">
@@ -275,7 +275,7 @@ export default function AdminTemplatesPage() {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g. Royal Vivah Invitation"
-                  className="w-full rounded-xl bg-charcoal-800 border border-charcoal-700 px-3 py-2 text-white focus:outline-hidden focus:border-purple-500"
+                  className="w-full rounded-xl bg-charcoal-800 border border-charcoal-700 px-3 py-2 text-white focus:outline-hidden focus:border-brand-500"
                 />
               </div>
 
@@ -284,7 +284,7 @@ export default function AdminTemplatesPage() {
                 <select
                   value={eventType}
                   onChange={(e) => setEventType(e.target.value)}
-                  className="w-full rounded-xl bg-charcoal-800 border border-charcoal-700 px-3 py-2 text-white focus:outline-hidden focus:border-purple-500"
+                  className="w-full rounded-xl bg-charcoal-800 border border-charcoal-700 px-3 py-2 text-white focus:outline-hidden focus:border-brand-500"
                 >
                   {OCCASIONS.map((occ) => (
                     <option key={occ} value={occ}>
@@ -301,7 +301,7 @@ export default function AdminTemplatesPage() {
                   value={previewImageUrl}
                   onChange={(e) => setPreviewImageUrl(e.target.value)}
                   placeholder="https://..."
-                  className="w-full rounded-xl bg-charcoal-800 border border-charcoal-700 px-3 py-2 text-white focus:outline-hidden focus:border-purple-500"
+                  className="w-full rounded-xl bg-charcoal-800 border border-charcoal-700 px-3 py-2 text-white focus:outline-hidden focus:border-brand-500"
                 />
               </div>
 
@@ -314,7 +314,7 @@ export default function AdminTemplatesPage() {
                   rows={5}
                   value={defaultMessage}
                   onChange={(e) => setDefaultMessage(e.target.value)}
-                  className="w-full rounded-xl bg-charcoal-800 border border-charcoal-700 p-2.5 text-white font-mono text-[11px] focus:outline-hidden focus:border-purple-500 leading-relaxed"
+                  className="w-full rounded-xl bg-charcoal-800 border border-charcoal-700 p-2.5 text-white font-mono text-[11px] focus:outline-hidden focus:border-brand-500 leading-relaxed"
                 />
                 <span className="text-[10px] text-charcoal-500 mt-1 block">
                   Placeholders: {'{{guestName}}'}, {'{{eventName}}'}, {'{{eventDate}}'}, {'{{venue}}'}, {'{{invitationUrl}}'}
@@ -336,7 +336,7 @@ export default function AdminTemplatesPage() {
                   type="submit"
                   size="sm"
                   disabled={formSubmitting}
-                  className="bg-purple-600 hover:bg-purple-500 text-white text-xs"
+                  className="bg-brand-600 hover:bg-brand-500 text-white text-xs"
                 >
                   {formSubmitting ? 'Saving...' : editingTemplate ? 'Update Template' : 'Create Template'}
                 </Button>

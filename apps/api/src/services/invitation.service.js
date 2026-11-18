@@ -19,7 +19,7 @@ export class InvitationService {
   /**
    * Generates or updates invitations for assigned event guests (tenant isolated)
    */
-  async generateInvitations(userId, { eventId, templateId, eventGuestIds, customMessage, regenerate = false }) {
+  async generateInvitations(userId, { eventId, templateId, eventGuestIds, customMessage, coverImageUrl, regenerate = false }) {
     // 1. Verify event ownership
     const event = await prisma.event.findFirst({
       where: { id: eventId, userId }
@@ -69,6 +69,14 @@ export class InvitationService {
 
     await prisma.$transaction(
       async (tx) => {
+        // If a custom cover/card image is provided, persist it to the celebration event
+        if (coverImageUrl) {
+          await tx.event.update({
+            where: { id: eventId },
+            data: { coverImageUrl }
+          });
+        }
+
         for (const guest of eventGuests) {
           const existing = existingMap.get(guest.id);
 
@@ -122,7 +130,12 @@ export class InvitationService {
   async listInvitations(userId, { eventId, search = '', status = '', page = 1, limit = 50 } = {}, origin = null) {
     // Verify event ownership
     const event = await prisma.event.findFirst({
-      where: { id: eventId, userId }
+      where: { id: eventId, userId },
+      include: {
+        user: {
+          select: { name: true }
+        }
+      }
     });
 
     if (!event) {
@@ -130,6 +143,8 @@ export class InvitationService {
       err.statusCode = 404;
       throw err;
     }
+
+    const hostName = event.user?.name || 'Your Host';
 
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const limitNum = Math.min(200, Math.max(1, parseInt(limit, 10) || 50));
@@ -140,13 +155,13 @@ export class InvitationService {
       ...(status && status.trim() !== '' ? { whatsappStatus: status } : {}),
       ...(search
         ? {
-            eventGuest: {
-              OR: [
-                { name: { contains: search, mode: 'insensitive' } },
-                { whatsappNumber: { contains: search } }
-              ]
-            }
+          eventGuest: {
+            OR: [
+              { name: { contains: search, mode: 'insensitive' } },
+              { whatsappNumber: { contains: search } }
+            ]
           }
+        }
         : {})
     };
 
@@ -173,7 +188,7 @@ export class InvitationService {
       year: 'numeric'
     });
 
-    const appOrigin = origin || config.appOrigin || 'http://localhost:3000';
+    const appOrigin = origin || config.appOrigin || (config.isProduction ? '' : 'http://localhost:3000');
 
     const enrichedInvitations = invitations.map((inv) => {
       const invitationUrl = `${appOrigin}/invite/${inv.token}`;
@@ -187,6 +202,7 @@ export class InvitationService {
         eventTime: event.eventTime || '',
         venue: event.venue,
         invitationUrl,
+        hostName,
         customMessage: inv.personalizedMessage
       });
 
@@ -194,6 +210,13 @@ export class InvitationService {
 
       return {
         ...inv,
+        hostName,
+        eventName: event.name,
+        eventVenue: event.venue,
+        eventDate: event.eventDate,
+        eventTime: event.eventTime,
+        eventType: event.eventType,
+        coverImageUrl: event.coverImageUrl || null,
         invitationUrl,
         formattedMessage,
         whatsAppUrl
@@ -203,6 +226,7 @@ export class InvitationService {
     return {
       eventId,
       eventName: event.name,
+      hostName,
       total,
       invitations: enrichedInvitations,
       pagination: {
@@ -221,7 +245,11 @@ export class InvitationService {
     const invitation = await prisma.invitation.findUnique({
       where: { id: invitationId },
       include: {
-        event: true,
+        event: {
+          include: {
+            user: { select: { name: true } }
+          }
+        },
         eventGuest: true,
         template: true
       }
@@ -233,7 +261,8 @@ export class InvitationService {
       throw err;
     }
 
-    const appOrigin = origin || config.appOrigin || 'http://localhost:3000';
+    const hostName = invitation.event.user?.name || 'Your Host';
+    const appOrigin = origin || config.appOrigin || (config.isProduction ? '' : 'http://localhost:3000');
     const invitationUrl = `${appOrigin}/invite/${invitation.token}`;
     const cleanPhone = invitation.eventGuest.whatsappNumber.replace(/[^\d]/g, '');
 
@@ -244,6 +273,7 @@ export class InvitationService {
       eventTime: invitation.event.eventTime || '',
       venue: invitation.event.venue,
       invitationUrl,
+      hostName,
       customMessage: invitation.personalizedMessage
     });
 
@@ -251,6 +281,12 @@ export class InvitationService {
 
     return {
       ...invitation,
+      hostName,
+      eventName: invitation.event.name,
+      eventVenue: invitation.event.venue,
+      eventDate: invitation.event.eventDate,
+      eventTime: invitation.event.eventTime,
+      eventType: invitation.event.eventType,
       invitationUrl,
       formattedMessage,
       whatsAppUrl
@@ -369,7 +405,12 @@ export class InvitationService {
             coverImageUrl: true,
             rsvpDeadlineType: true,
             rsvpDeadlineDate: true,
-            rsvpDeadlineDaysBefore: true
+            rsvpDeadlineDaysBefore: true,
+            user: {
+              select: {
+                name: true
+              }
+            }
           }
         },
         eventGuest: {
@@ -379,7 +420,9 @@ export class InvitationService {
         },
         template: {
           select: {
+            id: true,
             title: true,
+            eventType: true,
             previewImageUrl: true,
             contentHtml: true
           }
@@ -402,23 +445,74 @@ export class InvitationService {
 
     const effectiveDeadline = calculateEffectiveDeadline(invitation.event);
 
+    const appOrigin = config.appOrigin || (config.isProduction ? '' : 'http://localhost:3000');
+    const invitationUrl = `${appOrigin}/invite/${invitation.token}`;
+    const hostName = invitation.event.user?.name || 'Your Host';
+
     // Dynamic placeholder resolution for invitee view
     let displayMessage = invitation.personalizedMessage || '';
     if (displayMessage) {
-      displayMessage = displayMessage.replace(/{{guestName}}/g, invitation.eventGuest.name);
-      displayMessage = displayMessage.replace(/{{eventName}}/g, invitation.event.name);
-      displayMessage = displayMessage.replace(
-        /{{eventDate}}/g,
-        new Date(invitation.event.eventDate).toLocaleDateString()
-      );
-      displayMessage = displayMessage.replace(/{{venue}}/g, invitation.event.venue);
+      const formattedDate = new Date(invitation.event.eventDate).toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+
+      displayMessage = displayMessage
+        .replace(/{{guestName}}/g, invitation.eventGuest.name)
+        .replace(/{{eventName}}/g, invitation.event.name)
+        .replace(/{{eventDate}}/g, formattedDate)
+        .replace(/{{eventTime}}/g, invitation.event.eventTime || '')
+        .replace(/{{venue}}/g, invitation.event.venue)
+        .replace(/{{hostName}}/g, hostName)
+        .replace(/{{invitationUrl}}/g, '')
+        // Clean out raw URLs so links are not printed inside personal message text
+        .replace(/https?:\/\/[^\s]+/gi, '')
+        .trim();
+
+      // Strip any other unpopulated {{...}} placeholders so raw tokens never appear
+      displayMessage = displayMessage.replace(/\{\{[^}]+\}\}/g, '').replace(/\s{2,}/g, ' ').trim();
+    }
+
+    // Determine the active design key based on explicit template selection or event category
+    let designKey = 'OTHER';
+    const templateEventType = (invitation.template?.eventType || '').toUpperCase();
+    const eventEventType = (invitation.event.eventType || '').toUpperCase();
+    const templateTitle = (invitation.template?.title || '').toLowerCase();
+    const eventTitle = (invitation.event.name || '').toLowerCase();
+
+    if (
+      templateEventType === 'WEDDING' ||
+      eventEventType === 'WEDDING' ||
+      templateTitle.includes('wedding') ||
+      templateTitle.includes('shaadi') ||
+      templateTitle.includes('vivah') ||
+      templateTitle.includes('royal gold & ivory') ||
+      templateTitle.includes('floral botanical')
+    ) {
+      designKey = 'WEDDING';
+    } else if (
+      templateEventType === 'ANNIVERSARY' ||
+      eventEventType === 'ANNIVERSARY' ||
+      templateTitle.includes('anniversary') ||
+      templateTitle.includes('silver jubilee') ||
+      templateTitle.includes('silver & emerald') ||
+      templateTitle.includes('vow renewal') ||
+      eventTitle.includes('anniversary') ||
+      eventTitle.includes('silver jubilee')
+    ) {
+      designKey = 'ANNIVERSARY';
     }
 
     return {
       success: true,
+      token: invitation.token,
       guestName: invitation.eventGuest.name,
       eventName: invitation.event.name,
       eventType: invitation.event.eventType,
+      hostName,
+      invitationUrl,
       eventDate: invitation.event.eventDate,
       eventTime: invitation.event.eventTime,
       venue: invitation.event.venue,
@@ -428,6 +522,7 @@ export class InvitationService {
       isDeadlinePassed: new Date() > effectiveDeadline,
       personalizedMessage: displayMessage,
       template: invitation.template,
+      designKey,
       rsvpStatus: invitation.rsvpResponse ? invitation.rsvpResponse.status : null,
       companionCount: invitation.rsvpResponse ? invitation.rsvpResponse.companionCount : 0
     };

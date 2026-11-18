@@ -218,7 +218,7 @@ export function ExcelImportModal({ isOpen, onClose, onSuccess }: ExcelImportModa
                       <th className="px-3 py-2.5">Status &amp; Details</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-surface-border bg-white">
+                  <tbody className="divide-y divide-surface-border bg-surface-card">
                     {preview?.rows.map((r: ExcelImportRow) => (
                       <tr key={r.rowNumber} className="hover:bg-surface-warm/50">
                         <td className="px-3 py-2 text-charcoal-400 font-mono">#{r.rowNumber}</td>

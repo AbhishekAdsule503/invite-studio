@@ -210,7 +210,7 @@ export function AddGuestModal({ isOpen, onClose, onSuccess, initialData }: AddGu
               <select
                 value={relation}
                 onChange={(e) => setRelation(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-surface-border bg-white text-sm text-charcoal-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full px-3 py-2 rounded-xl border border-surface-border bg-surface-card text-sm text-charcoal-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
                 <option value="Family">Family</option>
                 <option value="Friend">Friend</option>

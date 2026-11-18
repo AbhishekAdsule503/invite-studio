@@ -27,7 +27,7 @@ export default function AdminLayout({
     return (
       <div className="min-h-screen flex items-center justify-center bg-charcoal-950 text-white">
         <div className="flex flex-col items-center space-y-3">
-          <div className="w-10 h-10 rounded-2xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-400 animate-pulse">
+          <div className="w-10 h-10 rounded-2xl bg-brand-500/20 border border-brand-500/30 flex items-center justify-center text-brand-accent animate-pulse">
             <ShieldAlert className="w-5 h-5 animate-spin" />
           </div>
           <p className="text-xs text-charcoal-400 font-medium">Authenticating Super Admin session...</p>
@@ -103,7 +103,7 @@ export default function AdminLayout({
           </button>
 
           <div className="flex items-center space-x-2">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-purple-600 to-brand-500 flex items-center justify-center text-white">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-brand-800 to-brand-600 flex items-center justify-center text-white">
               <ShieldAlert className="w-3.5 h-3.5" />
             </div>
             <span className="font-display font-bold text-sm text-white">

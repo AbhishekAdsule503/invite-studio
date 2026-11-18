@@ -13,6 +13,19 @@ export async function sendOtp(req, res, next) {
   }
 }
 
+export async function sendEmailOtp(req, res, next) {
+  try {
+    const { email, name, isRegistration } = req.body;
+    const result = await authService.requestEmailOtp(email, { name, isRegistration });
+    return res.status(200).json({
+      success: true,
+      ...result
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function verifyOtp(req, res, next) {
   try {
     const { mobile, otp, name, email } = req.body;
@@ -24,6 +37,25 @@ export async function verifyOtp(req, res, next) {
     };
 
     const result = await authService.verifyOtpAndLogin(mobile, otp, clientInfo);
+    return res.status(200).json({
+      success: true,
+      ...result
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function verifyEmailOtp(req, res, next) {
+  try {
+    const { email, otp, name } = req.body;
+    const clientInfo = {
+      ip: req.ip || req.headers['x-forwarded-for'],
+      userAgent: req.headers['user-agent'],
+      name
+    };
+
+    const result = await authService.verifyEmailOtpAndLogin(email, otp, clientInfo);
     return res.status(200).json({
       success: true,
       ...result

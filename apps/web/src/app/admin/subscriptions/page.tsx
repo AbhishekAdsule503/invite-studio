@@ -130,7 +130,7 @@ export default function AdminSubscriptionsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-charcoal-800 pb-6">
         <div>
           <div className="flex items-center space-x-2">
-            <Badge variant="brand" className="bg-purple-500/20 text-purple-300 border-purple-500/30 text-[10px] uppercase font-bold">
+            <Badge variant="brand" className="bg-brand-500/20 text-brand-200 border-brand-500/30 text-[10px] uppercase font-bold">
               Subscription Control
             </Badge>
             <span className="text-charcoal-600">•</span>
@@ -161,7 +161,7 @@ export default function AdminSubscriptionsPage() {
           onClick={() => setActiveTab('subscriptions')}
           className={`pb-3 font-semibold border-b-2 flex items-center space-x-2 transition-colors ${
             activeTab === 'subscriptions'
-              ? 'border-purple-500 text-purple-400'
+              ? 'border-brand-accent text-brand-accent'
               : 'border-transparent text-charcoal-400 hover:text-white'
           }`}
         >
@@ -173,7 +173,7 @@ export default function AdminSubscriptionsPage() {
           onClick={() => setActiveTab('payments')}
           className={`pb-3 font-semibold border-b-2 flex items-center space-x-2 transition-colors ${
             activeTab === 'payments'
-              ? 'border-purple-500 text-purple-400'
+              ? 'border-brand-accent text-brand-accent'
               : 'border-transparent text-charcoal-400 hover:text-white'
           }`}
         >
@@ -195,7 +195,7 @@ export default function AdminSubscriptionsPage() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search user mobile or name..."
-                  className="w-full text-xs rounded-xl bg-charcoal-900 border border-charcoal-800 pl-9 pr-3 py-2 text-white placeholder-charcoal-500 focus:outline-hidden focus:border-purple-500"
+                  className="w-full text-xs rounded-xl bg-charcoal-900 border border-charcoal-800 pl-9 pr-3 py-2 text-white placeholder-charcoal-500 focus:outline-hidden focus:border-brand-500"
                 />
               </div>
               <Button type="submit" size="sm" className="bg-charcoal-800 text-white text-xs hover:bg-charcoal-700">
@@ -207,7 +207,7 @@ export default function AdminSubscriptionsPage() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="rounded-xl bg-charcoal-900 border border-charcoal-800 px-3 py-2 text-charcoal-300 focus:outline-hidden focus:border-purple-500 text-xs"
+                className="rounded-xl bg-charcoal-900 border border-charcoal-800 px-3 py-2 text-charcoal-300 focus:outline-hidden focus:border-brand-500 text-xs"
               >
                 <option value="">All Statuses</option>
                 <option value="ACTIVE">Active</option>
@@ -219,7 +219,7 @@ export default function AdminSubscriptionsPage() {
               <select
                 value={planFilter}
                 onChange={(e) => setPlanFilter(e.target.value)}
-                className="rounded-xl bg-charcoal-900 border border-charcoal-800 px-3 py-2 text-charcoal-300 focus:outline-hidden focus:border-purple-500 text-xs"
+                className="rounded-xl bg-charcoal-900 border border-charcoal-800 px-3 py-2 text-charcoal-300 focus:outline-hidden focus:border-brand-500 text-xs"
               >
                 <option value="">All Plans</option>
                 {plans.map((p) => (
@@ -297,7 +297,7 @@ export default function AdminSubscriptionsPage() {
                             size="sm"
                             variant="outline"
                             onClick={() => openAdjustModal(s)}
-                            className="border-charcoal-700 text-purple-300 hover:text-white text-xs px-2.5 py-1 h-auto"
+                            className="border-charcoal-700 text-brand-accent hover:text-white text-xs px-2.5 py-1 h-auto"
                           >
                             <Edit2 className="w-3.5 h-3.5 mr-1" />
                             <span>Adjust</span>
@@ -401,7 +401,7 @@ export default function AdminSubscriptionsPage() {
                 <select
                   value={targetPlanId}
                   onChange={(e) => setTargetPlanId(e.target.value)}
-                  className="w-full rounded-xl bg-charcoal-800 border border-charcoal-700 px-3 py-2 text-white focus:outline-hidden focus:border-purple-500"
+                  className="w-full rounded-xl bg-charcoal-800 border border-charcoal-700 px-3 py-2 text-white focus:outline-hidden focus:border-brand-500"
                 >
                   {plans.map((p) => (
                     <option key={p.id} value={p.id}>
@@ -417,7 +417,7 @@ export default function AdminSubscriptionsPage() {
                   <select
                     value={targetStatus}
                     onChange={(e) => setTargetStatus(e.target.value)}
-                    className="w-full rounded-xl bg-charcoal-800 border border-charcoal-700 px-3 py-2 text-white focus:outline-hidden focus:border-purple-500"
+                    className="w-full rounded-xl bg-charcoal-800 border border-charcoal-700 px-3 py-2 text-white focus:outline-hidden focus:border-brand-500"
                   >
                     <option value="ACTIVE">ACTIVE</option>
                     <option value="TRIAL">TRIAL</option>
@@ -433,7 +433,7 @@ export default function AdminSubscriptionsPage() {
                     required
                     value={targetExpiresAt}
                     onChange={(e) => setTargetExpiresAt(e.target.value)}
-                    className="w-full rounded-xl bg-charcoal-800 border border-charcoal-700 px-3 py-2 text-white focus:outline-hidden focus:border-purple-500"
+                    className="w-full rounded-xl bg-charcoal-800 border border-charcoal-700 px-3 py-2 text-white focus:outline-hidden focus:border-brand-500"
                   />
                 </div>
               </div>
@@ -448,7 +448,7 @@ export default function AdminSubscriptionsPage() {
                   value={adjustReason}
                   onChange={(e) => setAdjustReason(e.target.value)}
                   placeholder="e.g. Authorized complimentary VIP extension"
-                  className="w-full rounded-xl bg-charcoal-800 border border-charcoal-700 px-3 py-2 text-white focus:outline-hidden focus:border-purple-500"
+                  className="w-full rounded-xl bg-charcoal-800 border border-charcoal-700 px-3 py-2 text-white focus:outline-hidden focus:border-brand-500"
                 />
               </div>
 
@@ -459,7 +459,7 @@ export default function AdminSubscriptionsPage() {
                   value={adjustNotes}
                   onChange={(e) => setAdjustNotes(e.target.value)}
                   placeholder="Additional context or ticket reference..."
-                  className="w-full rounded-xl bg-charcoal-800 border border-charcoal-700 p-2.5 text-white focus:outline-hidden focus:border-purple-500"
+                  className="w-full rounded-xl bg-charcoal-800 border border-charcoal-700 p-2.5 text-white focus:outline-hidden focus:border-brand-500"
                 />
               </div>
 
@@ -478,7 +478,7 @@ export default function AdminSubscriptionsPage() {
                   type="submit"
                   size="sm"
                   disabled={adjustSubmitting || !adjustReason.trim()}
-                  className="bg-purple-600 hover:bg-purple-500 text-white text-xs"
+                  className="bg-brand-600 hover:bg-brand-500 text-white text-xs"
                 >
                   {adjustSubmitting ? 'Applying...' : 'Apply Override'}
                 </Button>

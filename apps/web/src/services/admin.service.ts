@@ -36,11 +36,17 @@ export interface AdminDashboardMetrics {
   totalVerifiedTransactions: number;
   newRegistrations30d: number;
   renewalsCount: number;
+  totalActivePlans: number;
+  totalInactivePlans: number;
+  totalActiveSubscribers: number;
 }
 
 export interface SubscriptionDistributionItem {
   planName: string;
   planCode: string;
+  tier?: number;
+  priceYearly?: number;
+  priceMonthly?: number;
   count: number;
 }
 
@@ -147,8 +153,10 @@ export const adminService = {
     await apiClient.patch(`/admin/users/${id}/status`, { isActive, reason });
   },
 
-  async listPlans(): Promise<SubscriptionPlan[]> {
-    const res = await apiClient.get<{ success: boolean; plans: SubscriptionPlan[] }>('/admin/plans');
+  async listPlans(includeLegacy: boolean = false): Promise<SubscriptionPlan[]> {
+    const res = await apiClient.get<{ success: boolean; plans: SubscriptionPlan[] }>('/admin/plans', {
+      params: includeLegacy ? { includeLegacy: true } : {}
+    });
     return res.data.plans;
   },
 
@@ -165,6 +173,11 @@ export const adminService = {
   async togglePlan(id: string): Promise<SubscriptionPlan> {
     const res = await apiClient.patch<{ success: boolean; plan: SubscriptionPlan }>(`/admin/plans/${id}/toggle`);
     return res.data.plan;
+  },
+
+  async deletePlan(id: string): Promise<{ success: boolean; message: string }> {
+    const res = await apiClient.delete<{ success: boolean; message: string }>(`/admin/plans/${id}`);
+    return res.data;
   },
 
   async listSubscriptions(params: {

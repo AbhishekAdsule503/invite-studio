@@ -46,6 +46,14 @@ export function errorHandler(err, _req, res, _next) {
     });
   }
 
+  // Multer File Upload Errors
+  if (err.name === 'MulterError' || err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(400).json({
+      success: false,
+      error: err.code === 'LIMIT_FILE_SIZE' ? 'Image file must be under 5MB.' : err.message
+    });
+  }
+
   // Custom HTTP errors with statusCode
   const statusCode = err.statusCode || err.status || 500;
   const message = err.isPublic || statusCode < 500 ? err.message : 'An unexpected server error occurred.';

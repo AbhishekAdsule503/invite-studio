@@ -21,7 +21,9 @@ export async function getDashboardStats(_req, res, next) {
       revenueResult,
       newRegistrationsCount,
       renewalsCount,
-      plans
+      plans,
+      totalActivePlansCount,
+      totalInactivePlansCount
     ] = await Promise.all([
       prisma.user.count(),
       prisma.userSubscription.count({ where: { status: 'ACTIVE' } }),
@@ -37,12 +39,23 @@ export async function getDashboardStats(_req, res, next) {
       prisma.subscriptionHistory.count({
         where: { reason: { in: ['RENEWAL', 'RAZORPAY_PAYMENT'] } }
       }),
-      prisma.subscriptionPlan.findMany({ select: { id: true, name: true, code: true } })
+      prisma.subscriptionPlan.findMany({
+        where: { isActive: true, isLegacy: false, code: { not: 'TRIAL' } },
+        orderBy: [{ displayOrder: 'asc' }, { tier: 'asc' }],
+        select: { id: true, name: true, code: true, tier: true, priceYearly: true, priceMonthly: true }
+      }),
+      prisma.subscriptionPlan.count({
+        where: { isActive: true, isLegacy: false, code: { not: 'TRIAL' } }
+      }),
+      prisma.subscriptionPlan.count({
+        where: { OR: [{ isActive: false }, { isLegacy: true }] }
+      })
     ]);
 
-    // Subscription distribution by plan
+    // Subscription distribution by plan (for active plans only)
     const distributionCounts = await prisma.userSubscription.groupBy({
       by: ['planId'],
+      where: { status: 'ACTIVE' },
       _count: { id: true }
     });
 
@@ -51,6 +64,9 @@ export async function getDashboardStats(_req, res, next) {
       return {
         planName: p.name,
         planCode: p.code,
+        tier: p.tier,
+        priceYearly: p.priceYearly,
+        priceMonthly: p.priceMonthly,
         count: match ? match._count.id : 0
       };
     });
@@ -100,7 +116,10 @@ export async function getDashboardStats(_req, res, next) {
         totalRevenuePaise,
         totalVerifiedTransactions: revenueResult._count.id || 0,
         newRegistrations30d: newRegistrationsCount,
-        renewalsCount
+        renewalsCount,
+        totalActivePlans: totalActivePlansCount,
+        totalInactivePlans: totalInactivePlansCount,
+        totalActiveSubscribers: activeSubs
       },
       subscriptionDistribution,
       recentPayments,
@@ -299,13 +318,24 @@ export async function updateUserStatus(req, res, next) {
 // 3. PLAN MANAGEMENT
 // ==========================================
 
-export async function listPlansAdmin(_req, res, next) {
+export async function listPlansAdmin(req, res, next) {
   try {
+    const includeLegacy = req.query.includeLegacy === 'true';
+    const where = includeLegacy ? {} : { isLegacy: false };
+
     const plans = await prisma.subscriptionPlan.findMany({
-      orderBy: { tier: 'asc' },
+      where,
+      orderBy: [
+        { displayOrder: 'asc' },
+        { tier: 'asc' }
+      ],
       include: {
         _count: {
-          select: { subscriptions: true }
+          select: {
+            subscriptions: true,
+            paymentTransactions: true,
+            subscriptionHistory: true
+          }
         }
       }
     });
@@ -349,17 +379,24 @@ export async function createPlan(req, res, next) {
         name: data.name.trim(),
         code: data.code.toUpperCase().trim(),
         priceYearly: parseInt(data.priceYearly, 10),
+        priceMonthly: data.priceMonthly !== undefined ? parseInt(data.priceMonthly, 10) : 0,
         currency: data.currency || 'INR',
+        hasMonthlyBilling: Boolean(data.hasMonthlyBilling),
+        hasYearlyBilling: data.hasYearlyBilling !== undefined ? Boolean(data.hasYearlyBilling) : true,
         maxEvents: parseInt(data.maxEvents, 10),
         maxGuestsPerEvent: parseInt(data.maxGuestsPerEvent, 10),
         maxPermanentGuests: parseInt(data.maxPermanentGuests || 100, 10),
         canUploadCustomTemplates: Boolean(data.canUploadCustomTemplates),
         canCustomInviteUpload: Boolean(data.canCustomInviteUpload),
         tier: parseInt(data.tier || 0, 10),
+        displayOrder: data.displayOrder !== undefined ? parseInt(data.displayOrder, 10) : 0,
         isPopular: Boolean(data.isPopular),
         description: data.description ? data.description.trim() : null,
         features: data.features ? JSON.stringify(data.features) : null,
-        isActive: true
+        isActive: data.isActive !== undefined ? Boolean(data.isActive) : true,
+        isLegacy: false,
+        razorpayMonthlyPlanId: data.razorpayMonthlyPlanId || null,
+        razorpayYearlyPlanId: data.razorpayYearlyPlanId || null
       }
     });
 
@@ -369,7 +406,7 @@ export async function createPlan(req, res, next) {
         action: 'ADMIN_PLAN_CREATED',
         resourceType: 'SubscriptionPlan',
         resourceId: plan.id,
-        metadata: JSON.stringify({ code: plan.code, priceYearly: plan.priceYearly })
+        metadata: JSON.stringify({ code: plan.code, priceYearly: plan.priceYearly, priceMonthly: plan.priceMonthly })
       }
     });
 
@@ -393,17 +430,24 @@ export async function updatePlan(req, res, next) {
       data: {
         ...(data.name ? { name: data.name.trim() } : {}),
         ...(data.priceYearly !== undefined ? { priceYearly: parseInt(data.priceYearly, 10) } : {}),
+        ...(data.priceMonthly !== undefined ? { priceMonthly: parseInt(data.priceMonthly, 10) } : {}),
         ...(data.currency ? { currency: data.currency } : {}),
+        ...(data.hasMonthlyBilling !== undefined ? { hasMonthlyBilling: Boolean(data.hasMonthlyBilling) } : {}),
+        ...(data.hasYearlyBilling !== undefined ? { hasYearlyBilling: Boolean(data.hasYearlyBilling) } : {}),
         ...(data.maxEvents !== undefined ? { maxEvents: parseInt(data.maxEvents, 10) } : {}),
         ...(data.maxGuestsPerEvent !== undefined ? { maxGuestsPerEvent: parseInt(data.maxGuestsPerEvent, 10) } : {}),
         ...(data.maxPermanentGuests !== undefined ? { maxPermanentGuests: parseInt(data.maxPermanentGuests, 10) } : {}),
         ...(data.canUploadCustomTemplates !== undefined ? { canUploadCustomTemplates: Boolean(data.canUploadCustomTemplates) } : {}),
         ...(data.canCustomInviteUpload !== undefined ? { canCustomInviteUpload: Boolean(data.canCustomInviteUpload) } : {}),
         ...(data.tier !== undefined ? { tier: parseInt(data.tier, 10) } : {}),
+        ...(data.displayOrder !== undefined ? { displayOrder: parseInt(data.displayOrder, 10) } : {}),
         ...(data.isPopular !== undefined ? { isPopular: Boolean(data.isPopular) } : {}),
         ...(data.description !== undefined ? { description: data.description ? data.description.trim() : null } : {}),
         ...(data.features !== undefined ? { features: JSON.stringify(data.features) } : {}),
-        ...(data.isActive !== undefined ? { isActive: Boolean(data.isActive) } : {})
+        ...(data.isActive !== undefined ? { isActive: Boolean(data.isActive) } : {}),
+        ...(data.isLegacy !== undefined ? { isLegacy: Boolean(data.isLegacy) } : {}),
+        ...(data.razorpayMonthlyPlanId !== undefined ? { razorpayMonthlyPlanId: data.razorpayMonthlyPlanId } : {}),
+        ...(data.razorpayYearlyPlanId !== undefined ? { razorpayYearlyPlanId: data.razorpayYearlyPlanId } : {})
       }
     });
 
@@ -413,7 +457,7 @@ export async function updatePlan(req, res, next) {
         action: 'ADMIN_PLAN_UPDATED',
         resourceType: 'SubscriptionPlan',
         resourceId: plan.id,
-        metadata: JSON.stringify({ code: plan.code, priceYearly: plan.priceYearly })
+        metadata: JSON.stringify({ code: plan.code, priceYearly: plan.priceYearly, priceMonthly: plan.priceMonthly })
       }
     });
 
@@ -455,6 +499,68 @@ export async function togglePlan(req, res, next) {
       success: true,
       message: `Plan ${updated.code} is now ${updated.isActive ? 'active' : 'disabled'}.`,
       plan: updated
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function deletePlan(req, res, next) {
+  try {
+    const { id } = req.params;
+    const plan = await prisma.subscriptionPlan.findUnique({
+      where: { id },
+      include: {
+        _count: {
+          select: {
+            subscriptions: true,
+            paymentTransactions: true,
+            subscriptionHistory: true
+          }
+        }
+      }
+    });
+
+    if (!plan) {
+      return res.status(404).json({ success: false, error: 'Plan not found.' });
+    }
+
+    // Default platform plans cannot be deleted
+    const defaultCodes = ['BASIC', 'STANDARD', 'PREMIUM', 'TRIAL'];
+    if (defaultCodes.includes(plan.code)) {
+      return res.status(400).json({
+        success: false,
+        error: `Cannot delete default platform plan (${plan.code}). You may deactivate it instead.`
+      });
+    }
+
+    const subCount = plan._count?.subscriptions || 0;
+    const txCount = plan._count?.paymentTransactions || 0;
+    const histCount = plan._count?.subscriptionHistory || 0;
+    const totalRefs = subCount + txCount + histCount;
+
+    if (totalRefs > 0) {
+      return res.status(400).json({
+        success: false,
+        error: `Cannot permanently delete plan '${plan.name}' because it is referenced by ${subCount} subscription(s) and ${txCount} payment transaction(s). Please deactivate (disable) the plan instead to hide it from new customers while preserving billing history.`
+      });
+    }
+
+    await prisma.subscriptionPlan.delete({ where: { id } });
+
+    await prisma.auditLog.create({
+      data: {
+        actorId: req.user.id,
+        action: 'ADMIN_PLAN_DELETED',
+        resourceType: 'SubscriptionPlan',
+        resourceId: id,
+        metadata: JSON.stringify({ code: plan.code, name: plan.name })
+      }
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: `Plan '${plan.name}' (${plan.code}) deleted successfully.`
     });
   } catch (error) {
     next(error);

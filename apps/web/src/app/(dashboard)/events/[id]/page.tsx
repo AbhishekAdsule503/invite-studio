@@ -238,7 +238,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
               <span className="text-xs font-semibold uppercase tracking-wider text-charcoal-500">
                 Total Invited
               </span>
-              <div className="w-8 h-8 rounded-lg bg-indigo-50 text-brand-600 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center">
                 <Users className="w-4 h-4" />
               </div>
             </div>
@@ -342,7 +342,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
               placeholder="Search event guests..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-1.5 rounded-xl border border-surface-border bg-white text-xs focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="w-full pl-10 pr-4 py-1.5 rounded-xl border border-surface-border bg-surface-card text-xs focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
         </div>
@@ -381,7 +381,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                   <th className="px-6 py-3.5 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-surface-border bg-white">
+              <tbody className="divide-y divide-surface-border bg-surface-card">
                 {guests.map((g) => (
                   <tr key={g.id} className="hover:bg-surface-warm/40 transition-colors">
                     <td className="px-6 py-3.5 font-medium text-charcoal-900">
@@ -416,7 +416,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
                     <td className="px-6 py-3.5">
                       {g.guestId ? (
-                        <span className="inline-flex items-center text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 rounded-full">
+                        <span className="inline-flex items-center text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-200 px-2.5 py-0.5 rounded-full">
                           <BookmarkCheck className="w-3 h-3 mr-1" />
                           Permanent Directory
                         </span>

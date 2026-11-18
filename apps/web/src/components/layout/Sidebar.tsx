@@ -39,8 +39,8 @@ export function Sidebar({ onCloseMobile }: SidebarProps) {
       {/* Brand Header */}
       <div className="h-16 px-6 flex items-center justify-between border-b border-surface-border">
         <Link href="/dashboard" className="flex items-center space-x-3 group">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-700 to-brand-500 flex items-center justify-center text-white shadow-sm shadow-brand-500/20 group-hover:scale-105 transition-transform">
-            <Sparkles className="w-4 h-4" />
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-700 to-brand-500 flex items-center justify-center text-white shadow-sm shadow-brand-700/20 group-hover:scale-105 transition-transform">
+            <Sparkles className="w-4 h-4 text-brand-accent" />
           </div>
           <div>
             <span className="font-display font-extrabold text-base tracking-tight text-charcoal-900 block leading-tight">
@@ -96,9 +96,9 @@ export function Sidebar({ onCloseMobile }: SidebarProps) {
             <Link
               href="/admin/dashboard"
               onClick={onCloseMobile}
-              className="flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-semibold bg-purple-50 text-purple-700 hover:bg-purple-100 transition-all border border-purple-200/80"
+              className="flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-semibold bg-brand-50 text-brand-700 hover:bg-brand-100 transition-all border border-brand-200/80"
             >
-              <ShieldAlert className="w-4 h-4 text-purple-600 shrink-0" />
+              <ShieldAlert className="w-4 h-4 text-brand-600 shrink-0" />
               <span>Super Admin Panel</span>
             </Link>
           </div>

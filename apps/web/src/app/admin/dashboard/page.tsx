@@ -109,8 +109,8 @@ export default function AdminDashboardPage() {
       value: `₹${metrics.totalRevenueRupees.toLocaleString('en-IN')}`,
       subtitle: `${metrics.totalVerifiedTransactions} successful Razorpay payments`,
       icon: CreditCard,
-      color: 'text-purple-400',
-      bg: 'bg-purple-500/10 border-purple-500/20'
+      color: 'text-brand-accent',
+      bg: 'bg-brand-500/10 border-brand-500/20'
     }
   ];
 
@@ -120,7 +120,7 @@ export default function AdminDashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-charcoal-800 pb-6">
         <div>
           <div className="flex items-center space-x-2">
-            <Badge variant="brand" className="bg-purple-500/20 text-purple-300 border-purple-500/30 text-[10px] uppercase font-bold">
+            <Badge variant="brand" className="bg-brand-500/20 text-brand-200 border-brand-500/30 text-[10px] uppercase font-bold">
               Production Workspace
             </Badge>
             <span className="text-charcoal-600">•</span>
@@ -146,7 +146,7 @@ export default function AdminDashboardPage() {
           </Button>
 
           <Link href="/admin/users">
-            <Button size="sm" className="bg-purple-600 hover:bg-purple-500 text-white text-xs space-x-1.5">
+            <Button size="sm" className="bg-brand-600 hover:bg-brand-500 text-white text-xs space-x-1.5">
               <span>Manage Users</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
             </Button>
@@ -190,45 +190,74 @@ export default function AdminDashboardPage() {
                 Subscription Plan Distribution
               </h3>
               <p className="text-xs text-charcoal-400 mt-0.5">
-                Active host allocation across configured yearly plans
+                Active host allocation across configured active plans
               </p>
             </div>
-            <Link href="/admin/plans" className="text-xs text-purple-400 hover:text-purple-300 font-medium">
-              Configure Plans &rarr;
+            <Link href="/admin/plans" className="text-xs text-brand-accent hover:text-brand-300 font-medium">
+              Manage Plans &rarr;
             </Link>
           </div>
 
+          {/* Quick Plan Stats Overview */}
+          <div className="grid grid-cols-3 gap-3 p-3 rounded-2xl bg-charcoal-800/30 border border-charcoal-800/60 text-xs">
+            <div>
+              <span className="text-[10px] text-charcoal-400 uppercase font-semibold">Active Plans</span>
+              <strong className="block text-emerald-400 text-sm font-display mt-0.5">
+                {metrics.totalActivePlans ?? subscriptionDistribution.length}
+              </strong>
+            </div>
+            <div>
+              <span className="text-[10px] text-charcoal-400 uppercase font-semibold">Inactive / Legacy</span>
+              <strong className="block text-charcoal-400 text-sm font-display mt-0.5">
+                {metrics.totalInactivePlans ?? 0}
+              </strong>
+            </div>
+            <div>
+              <span className="text-[10px] text-charcoal-400 uppercase font-semibold">Active Subscribers</span>
+              <strong className="block text-white text-sm font-display mt-0.5">
+                {metrics.totalActiveSubscribers ?? metrics.activeSubscriptions}
+              </strong>
+            </div>
+          </div>
+
           <div className="space-y-4 pt-2">
-            {subscriptionDistribution.map((item, idx) => {
-              const totalSubs = metrics.totalUsers || 1;
-              const percentage = Math.round((item.count / totalSubs) * 100);
-              return (
-                <div key={idx} className="space-y-1.5">
-                  <div className="flex justify-between text-xs">
-                    <span className="font-semibold text-charcoal-200">
-                      {item.planName} <span className="font-mono text-charcoal-500 text-[10px]">({item.planCode})</span>
-                    </span>
-                    <span className="font-mono text-charcoal-400">
-                      {item.count} subscribers ({percentage}%)
-                    </span>
+            {subscriptionDistribution.length === 0 ? (
+              <p className="text-xs text-charcoal-500 py-4 text-center">No active plans configured.</p>
+            ) : (
+              subscriptionDistribution.map((item, idx) => {
+                const totalPaidSubs = metrics.activeSubscriptions || 1;
+                const percentage = Math.round((item.count / totalPaidSubs) * 100);
+                return (
+                  <div key={idx} className="space-y-1.5">
+                    <div className="flex justify-between text-xs">
+                      <span className="font-semibold text-charcoal-200">
+                        {item.planName}{' '}
+                        <span className="font-mono text-charcoal-500 text-[10px]">({item.planCode})</span>
+                      </span>
+                      <span className="font-mono text-charcoal-400">
+                        {item.count} subscribers {metrics.activeSubscriptions > 0 ? `(${percentage}%)` : '(0%)'}
+                      </span>
+                    </div>
+                    <div className="w-full bg-charcoal-800 h-2.5 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          item.planCode === 'PREMIUM'
+                            ? 'bg-brand-accent'
+                            : item.planCode === 'STANDARD'
+                            ? 'bg-brand-600'
+                            : item.planCode === 'BASIC'
+                            ? 'bg-blue-500'
+                            : 'bg-emerald-500'
+                        }`}
+                        style={{
+                          width: `${item.count > 0 ? Math.max(8, Math.min(100, percentage)) : 2}%`
+                        }}
+                      />
+                    </div>
                   </div>
-                  <div className="w-full bg-charcoal-800 h-2.5 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all duration-500 ${
-                        item.planCode === 'PREMIUM'
-                          ? 'bg-purple-500'
-                          : item.planCode === 'STANDARD'
-                          ? 'bg-brand-500'
-                          : item.planCode === 'BASIC'
-                          ? 'bg-blue-500'
-                          : 'bg-amber-500'
-                      }`}
-                      style={{ width: `${Math.max(4, Math.min(100, percentage))}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
 
           <div className="pt-4 border-t border-charcoal-800 grid grid-cols-3 gap-4 text-center">
@@ -317,7 +346,7 @@ export default function AdminDashboardPage() {
             <h3 className="font-display font-bold text-base text-white">
               Recent Verified Payments
             </h3>
-            <Link href="/admin/subscriptions" className="text-xs text-purple-400 hover:text-purple-300 font-medium">
+            <Link href="/admin/subscriptions" className="text-xs text-brand-accent hover:text-brand-300 font-medium">
               View All &rarr;
             </Link>
           </div>
@@ -362,7 +391,7 @@ export default function AdminDashboardPage() {
             <h3 className="font-display font-bold text-base text-white">
               Recent Host Registrations
             </h3>
-            <Link href="/admin/users" className="text-xs text-purple-400 hover:text-purple-300 font-medium">
+            <Link href="/admin/users" className="text-xs text-brand-accent hover:text-brand-300 font-medium">
               View All Users &rarr;
             </Link>
           </div>
@@ -382,7 +411,7 @@ export default function AdminDashboardPage() {
                     <div className="flex items-center space-x-2">
                       <span className="font-semibold text-white">{u.name || u.mobile}</span>
                       {u.role === 'SUPER_ADMIN' && (
-                        <Badge variant="brand" className="bg-purple-500/20 text-purple-300 text-[9px] px-1 py-0 uppercase">
+                        <Badge variant="brand" className="bg-brand-500/20 text-brand-200 border-brand-500/30 text-[9px] px-1 py-0 uppercase">
                           Admin
                         </Badge>
                       )}

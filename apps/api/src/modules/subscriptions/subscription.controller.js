@@ -46,8 +46,8 @@ export async function getSubscriptionHistory(req, res, next) {
 
 export async function createOrder(req, res, next) {
   try {
-    const { planId } = req.body;
-    const order = await paymentService.createSubscriptionOrder(req.user.id, planId);
+    const { planId, billingCycle } = req.body;
+    const order = await paymentService.createSubscriptionOrder(req.user.id, planId, billingCycle);
     return res.status(200).json({
       success: true,
       ...order
@@ -83,6 +83,24 @@ export async function handleWebhook(req, res, next) {
     const rawBody = req.rawBody || Buffer.from(JSON.stringify(req.body));
 
     const result = await paymentService.processWebhook(rawBody, signature);
+    return res.status(200).json({
+      success: true,
+      ...result
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function recordPaymentFailure(req, res, next) {
+  try {
+    const { orderId, paymentId, reason, description } = req.body;
+    const result = await paymentService.recordPaymentFailure(req.user.id, {
+      orderId,
+      paymentId,
+      reason,
+      description
+    });
     return res.status(200).json({
       success: true,
       ...result

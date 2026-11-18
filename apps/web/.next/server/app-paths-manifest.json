@@ -1,3 +1,26 @@
 {
-  "/page": "app/page.js"
+  "/_not-found/page": "app/_not-found/page.js",
+  "/(auth)/complete-profile/page": "app/(auth)/complete-profile/page.js",
+  "/(auth)/verify-otp/page": "app/(auth)/verify-otp/page.js",
+  "/(auth)/login/page": "app/(auth)/login/page.js",
+  "/invite/[token]/page": "app/invite/[token]/page.js",
+  "/page": "app/page.js",
+  "/privacy/page": "app/privacy/page.js",
+  "/terms/page": "app/terms/page.js",
+  "/refund/page": "app/refund/page.js",
+  "/(dashboard)/invitations/page": "app/(dashboard)/invitations/page.js",
+  "/(dashboard)/dashboard/page": "app/(dashboard)/dashboard/page.js",
+  "/(dashboard)/events/[id]/page": "app/(dashboard)/events/[id]/page.js",
+  "/(dashboard)/events/page": "app/(dashboard)/events/page.js",
+  "/(dashboard)/subscription/history/page": "app/(dashboard)/subscription/history/page.js",
+  "/(dashboard)/subscription/page": "app/(dashboard)/subscription/page.js",
+  "/(dashboard)/guests/page": "app/(dashboard)/guests/page.js",
+  "/(dashboard)/subscription/plans/page": "app/(dashboard)/subscription/plans/page.js",
+  "/admin/subscriptions/page": "app/admin/subscriptions/page.js",
+  "/admin/plans/page": "app/admin/plans/page.js",
+  "/admin/dashboard/page": "app/admin/dashboard/page.js",
+  "/admin/support/page": "app/admin/support/page.js",
+  "/admin/templates/page": "app/admin/templates/page.js",
+  "/admin/settings/page": "app/admin/settings/page.js",
+  "/admin/users/page": "app/admin/users/page.js"
 }

@@ -88,6 +88,238 @@ export class AuthService {
   }
 
   /**
+   * Dispatches Email OTP challenge to normalized email address
+   */
+  async requestEmailOtp(rawEmail, options = {}) {
+    if (!rawEmail || typeof rawEmail !== 'string') {
+      const err = new Error('Please provide a valid email address.');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(rawEmail.trim())) {
+      const err = new Error('Please provide a valid email address.');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const email = normalizeEmail(rawEmail);
+    const { name, isRegistration } = options;
+    const isReg = isRegistration === true || isRegistration === 'true';
+
+    // If new user registration, check if email already exists
+    if (isReg) {
+      if (name && (typeof name !== 'string' || name.trim().length < 2)) {
+        const err = new Error('Full name must be at least 2 characters.');
+        err.statusCode = 400;
+        throw err;
+      }
+
+      const existingUser = await prisma.user.findFirst({
+        where: { email: { equals: email, mode: 'insensitive' } }
+      });
+
+      if (existingUser) {
+        const err = new Error('An account with this email address already exists. Please sign in instead.');
+        err.statusCode = 400;
+        throw err;
+      }
+    } else {
+      // Sign-in mode: verify account exists
+      const existingUser = await prisma.user.findFirst({
+        where: { email: { equals: email, mode: 'insensitive' } }
+      });
+
+      if (!existingUser) {
+        const err = new Error('No account found with this email address. Please register first.');
+        err.statusCode = 404;
+        throw err;
+      }
+
+      if (!existingUser.isActive) {
+        const err = new Error('Your account has been deactivated. Please contact support.');
+        err.statusCode = 403;
+        throw err;
+      }
+    }
+
+    const result = await otpService.sendEmailOtp(email, { name });
+    return {
+      ...result,
+      email
+    };
+  }
+
+  /**
+   * Verifies Email OTP, registers or signs in user, and generates JWT tokens
+   */
+  async verifyEmailOtpAndLogin(rawEmail, otp, clientInfo = {}) {
+    if (!rawEmail || typeof rawEmail !== 'string') {
+      const err = new Error('Valid email address is required.');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const email = normalizeEmail(rawEmail);
+
+    // Verify OTP against active challenges for this email
+    await otpService.verifyEmailOtp(email, otp);
+
+    // Find user by normalized email
+    let user = await prisma.user.findFirst({
+      where: { email: { equals: email, mode: 'insensitive' } },
+      include: {
+        subscription: {
+          include: { plan: true }
+        }
+      }
+    });
+
+    let isNewUser = false;
+
+    if (!user) {
+      isNewUser = true;
+
+      const formattedName =
+        clientInfo.name && typeof clientInfo.name === 'string' && clientInfo.name.trim().length >= 2
+          ? clientInfo.name.trim()
+          : null;
+
+      // Find or create default Trial plan
+      let trialPlan = await prisma.subscriptionPlan.findUnique({
+        where: { code: 'TRIAL' }
+      });
+
+      if (!trialPlan) {
+        trialPlan = await prisma.subscriptionPlan.create({
+          data: {
+            name: 'Free Trial',
+            code: 'TRIAL',
+            priceYearly: 0,
+            currency: 'INR',
+            maxEvents: 3,
+            maxGuestsPerEvent: 50,
+            canUploadCustomTemplates: false,
+            isActive: true
+          }
+        });
+      }
+
+      // Create user with verified email
+      user = await prisma.user.create({
+        data: {
+          email,
+          name: formattedName,
+          emailVerifiedAt: new Date(),
+          role: 'HOST',
+          isActive: true,
+          subscription: {
+            create: {
+              planId: trialPlan.id,
+              status: 'TRIAL',
+              startsAt: new Date(),
+              expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+            }
+          }
+        },
+        include: {
+          subscription: {
+            include: { plan: true }
+          }
+        }
+      });
+    } else {
+      // Existing user: mark email verified if not yet set, update name if provided and missing
+      const updateData = {};
+      if (!user.emailVerifiedAt) {
+        updateData.emailVerifiedAt = new Date();
+      }
+      if (!user.name && clientInfo.name && typeof clientInfo.name === 'string' && clientInfo.name.trim().length >= 2) {
+        updateData.name = clientInfo.name.trim();
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: updateData,
+          include: {
+            subscription: {
+              include: { plan: true }
+            }
+          }
+        });
+      }
+    }
+
+    if (!user.isActive) {
+      const err = new Error('Your account has been deactivated. Please contact support.');
+      err.statusCode = 403;
+      throw err;
+    }
+
+    const isProfileComplete = Boolean(
+      user.name && user.name.trim().length > 0
+    );
+
+    // Generate JWT access & refresh tokens
+    const tokenPayload = {
+      userId: user.id,
+      mobile: user.mobile || null,
+      email: user.email,
+      role: user.role
+    };
+
+    const accessToken = jwt.sign(tokenPayload, config.jwt.accessSecret, {
+      expiresIn: config.jwt.accessExpiresIn
+    });
+
+    const refreshToken = jwt.sign(
+      { userId: user.id },
+      config.jwt.refreshSecret,
+      { expiresIn: config.jwt.refreshExpiresIn }
+    );
+
+    // Audit log
+    await prisma.auditLog.create({
+      data: {
+        actorId: user.id,
+        action: isNewUser ? 'USER_REGISTER_EMAIL' : 'USER_LOGIN_EMAIL',
+        resourceType: 'User',
+        resourceId: user.id,
+        ipAddress: clientInfo.ip || null,
+        userAgent: clientInfo.userAgent || null,
+        metadata: JSON.stringify({
+          email: user.email,
+          name: user.name,
+          isNewUser,
+          isProfileComplete
+        })
+      }
+    });
+
+    const sanitizedUser = {
+      id: user.id,
+      mobile: user.mobile || null,
+      name: user.name,
+      email: user.email,
+      emailVerifiedAt: user.emailVerifiedAt,
+      role: user.role,
+      subscription: user.subscription,
+      isProfileComplete
+    };
+
+    return {
+      success: true,
+      user: sanitizedUser,
+      accessToken,
+      refreshToken,
+      isNewUser,
+      isProfileComplete
+    };
+  }
+
+  /**
    * Verifies OTP, registers or signs in user, and generates JWT tokens
    */
   async verifyOtpAndLogin(rawMobile, otp, clientInfo = {}) {
@@ -283,25 +515,32 @@ export class AuthService {
       throw err;
     }
 
-    if (!email || typeof email !== 'string' || !email.trim()) {
+    const currentUser = await prisma.user.findUnique({ where: { id: userId } });
+    if (!currentUser) {
+      const err = new Error('User not found.');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    const effectiveEmail = (email && typeof email === 'string' && email.trim()) ? normalizeEmail(email) : currentUser.email;
+
+    if (!effectiveEmail) {
       const err = new Error('Email address is required.');
       err.statusCode = 400;
       throw err;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email.trim())) {
+    if (!emailRegex.test(effectiveEmail)) {
       const err = new Error('Please provide a valid email address.');
       err.statusCode = 400;
       throw err;
     }
 
-    const normalizedEmail = normalizeEmail(email);
-
     // Ensure email is not already in use by another user
     const existingEmail = await prisma.user.findFirst({
       where: {
-        email: { equals: normalizedEmail, mode: 'insensitive' },
+        email: { equals: effectiveEmail, mode: 'insensitive' },
         NOT: { id: userId }
       }
     });
@@ -316,7 +555,7 @@ export class AuthService {
       where: { id: userId },
       data: {
         name: name.trim(),
-        email: normalizedEmail
+        email: effectiveEmail
       },
       include: {
         subscription: {

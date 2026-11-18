@@ -30,6 +30,7 @@ router.get('/plans', adminController.listPlansAdmin);
 router.post('/plans', validateRequest(planCreateSchema), adminController.createPlan);
 router.put('/plans/:id', validateRequest(planUpdateSchema), adminController.updatePlan);
 router.patch('/plans/:id/toggle', adminController.togglePlan);
+router.delete('/plans/:id', adminController.deletePlan);
 
 // 4. Subscription Management & Manual Overrides
 router.get('/subscriptions', adminController.listSubscriptions);

@@ -5,17 +5,26 @@ export interface SubscriptionPlan {
   name: string;
   code: string;
   priceYearly: number; // in paise
+  priceMonthly?: number; // in paise
   currency: string;
+  hasMonthlyBilling?: boolean;
+  hasYearlyBilling?: boolean;
   maxEvents: number;
   maxGuestsPerEvent: number;
   maxPermanentGuests: number;
   canUploadCustomTemplates: boolean;
   canCustomInviteUpload: boolean;
   tier: number;
+  displayOrder?: number;
   isPopular: boolean;
   description?: string | null;
   features: string[];
   isActive?: boolean;
+  isLegacy?: boolean;
+  _count?: {
+    subscriptions: number;
+    paymentTransactions?: number;
+  };
 }
 
 export interface QuotaUsage {
@@ -31,6 +40,7 @@ export interface CurrentSubscriptionResponse {
   userId: string;
   status: string;
   effectiveStatus: string;
+  billingCycle?: 'MONTHLY' | 'YEARLY';
   isExpired: boolean;
   inGracePeriod: boolean;
   graceDaysRemaining: number;
@@ -54,12 +64,14 @@ export interface PaymentTransactionItem {
   paymentId?: string | null;
   status: 'PENDING' | 'SUCCESS' | 'FAILED' | 'REFUNDED';
   paymentProvider: string;
+  billingCycle?: string;
   createdAt: string;
   plan: {
     id: string;
     name: string;
     code: string;
     priceYearly: number;
+    priceMonthly?: number;
     currency: string;
   };
 }
@@ -119,16 +131,17 @@ export const subscriptionService = {
     return { history: res.data.history, payments: res.data.payments };
   },
 
-  async createOrder(planId: string): Promise<{
+  async createOrder(planId: string, billingCycle: 'MONTHLY' | 'YEARLY' = 'YEARLY'): Promise<{
     orderId: string;
     amount: number;
     currency: string;
     keyId: string;
     transactionId: string;
-    plan: { id: string; name: string; code: string; priceYearly: number; currency: string };
+    billingCycle?: string;
+    plan: { id: string; name: string; code: string; priceYearly: number; priceMonthly?: number; currency: string };
     isSandbox: boolean;
   }> {
-    const res = await apiClient.post('/subscriptions/create-order', { planId });
+    const res = await apiClient.post('/subscriptions/create-order', { planId, billingCycle });
     return res.data;
   },
 
@@ -138,6 +151,16 @@ export const subscriptionService = {
     signature: string;
   }): Promise<{ success: boolean; message: string; alreadyProcessed?: boolean }> {
     const res = await apiClient.post('/subscriptions/verify-payment', payload);
+    return res.data;
+  },
+
+  async recordFailure(payload: {
+    orderId: string;
+    paymentId?: string;
+    reason?: string;
+    description?: string;
+  }): Promise<{ success: boolean; status?: string }> {
+    const res = await apiClient.post('/subscriptions/record-failure', payload);
     return res.data;
   },
 

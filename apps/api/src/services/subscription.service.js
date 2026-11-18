@@ -178,8 +178,15 @@ export class SubscriptionService {
    */
   async getAvailablePlans() {
     const plans = await prisma.subscriptionPlan.findMany({
-      where: { isActive: true },
-      orderBy: { tier: 'asc' }
+      where: {
+        isActive: true,
+        isLegacy: false,
+        code: { not: 'TRIAL' }
+      },
+      orderBy: [
+        { displayOrder: 'asc' },
+        { tier: 'asc' }
+      ]
     });
 
     return plans.map((p) => {

@@ -69,9 +69,10 @@ enum TicketPriority {
 // 1. User Model (Host / Super Admin)
 model User {
   id              String                @id @default(uuid())
-  mobile          String                @unique
+  mobile          String?               @unique
   name            String?
-  email           String?
+  email           String?               @unique
+  emailVerifiedAt DateTime?
   role            Role                  @default(HOST)
   isActive        Boolean               @default(true)
   createdAt       DateTime              @default(now())
@@ -221,16 +222,23 @@ model SubscriptionPlan {
   code                     String                @unique
   description              String?
   features                 String?               // JSON string array of features
+  priceMonthly             Int?                  @default(0) // in INR paise / minor units
   priceYearly              Int                   @default(0) // in INR paise / minor units
   currency                 String                @default("INR")
+  hasMonthlyBilling        Boolean               @default(false)
+  hasYearlyBilling         Boolean               @default(true)
   maxEvents                Int                   @default(3)
   maxGuestsPerEvent        Int                   @default(50)
   maxPermanentGuests       Int                   @default(100)
   canUploadCustomTemplates Boolean               @default(false)
   canCustomInviteUpload    Boolean               @default(false)
   tier                     Int                   @default(0) // 0: Trial, 1: Basic, 2: Standard, 3: Premium
+  displayOrder             Int                   @default(0)
   isPopular                Boolean               @default(false)
   isActive                 Boolean               @default(true)
+  isLegacy                 Boolean               @default(false)
+  razorpayMonthlyPlanId    String?
+  razorpayYearlyPlanId     String?
   createdAt                DateTime              @default(now())
   updatedAt                DateTime              @updatedAt
 
@@ -240,6 +248,8 @@ model SubscriptionPlan {
 
   @@index([code])
   @@index([isActive])
+  @@index([isLegacy])
+  @@index([displayOrder])
 }
 
 // 9. UserSubscription Model
@@ -255,13 +265,14 @@ model UserSubscription {
   autoRenew         Boolean            @default(true)
   paymentProvider   String?
   paymentId         String?
+  billingCycle      String?            @default("YEARLY") // "MONTHLY" | "YEARLY"
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 
   user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   plan              SubscriptionPlan   @relation(fields: [planId], references: [id], onDelete: Restrict)
 
-  @@index([status])
+  @@index([status])   
   @@index([expiresAt])
 }
 
@@ -278,6 +289,7 @@ model PaymentTransaction {
   status          PaymentStatus  @default(PENDING)
   paymentProvider String         @default("RAZORPAY")
   webhookEventId  String?        @unique
+  billingCycle    String?        @default("YEARLY") // "MONTHLY" | "YEARLY"
   metadata        String?        // JSON string
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt

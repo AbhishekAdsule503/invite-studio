@@ -212,7 +212,7 @@ export function AddEventGuestsModal({
                   placeholder="Search existing guests..."
                   value={searchGuest}
                   onChange={(e) => setSearchGuest(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 rounded-xl border border-surface-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full pl-10 pr-4 py-2 rounded-xl border border-surface-border bg-surface-card text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
 
@@ -308,7 +308,7 @@ export function AddEventGuestsModal({
                   <select
                     value={newRelation}
                     onChange={(e) => setNewRelation(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-surface-border bg-white text-sm text-charcoal-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    className="w-full px-3 py-2 rounded-xl border border-surface-border bg-surface-card text-sm text-charcoal-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
                   >
                     <option value="Family">Family</option>
                     <option value="Friend">Friend</option>
