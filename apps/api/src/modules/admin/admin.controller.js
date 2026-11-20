@@ -383,9 +383,21 @@ export async function createPlan(req, res, next) {
         currency: data.currency || 'INR',
         hasMonthlyBilling: Boolean(data.hasMonthlyBilling),
         hasYearlyBilling: data.hasYearlyBilling !== undefined ? Boolean(data.hasYearlyBilling) : true,
-        maxEvents: parseInt(data.maxEvents, 10),
-        maxGuestsPerEvent: parseInt(data.maxGuestsPerEvent, 10),
-        maxPermanentGuests: parseInt(data.maxPermanentGuests || 100, 10),
+        maxEvents: parseInt(data.maxEvents || data.maxCampaignsPerMonth || 2, 10),
+        maxGuestsPerEvent: parseInt(data.maxGuestsPerEvent || 50, 10),
+        maxPermanentGuests: parseInt(data.maxPermanentGuests || data.maxContacts || 100, 10),
+        maxContacts: parseInt(data.maxContacts || data.maxPermanentGuests || 100, 10),
+        maxCampaignsPerMonth: parseInt(data.maxCampaignsPerMonth || data.maxEvents || 2, 10),
+        maxAutomatedWhatsApp: parseInt(data.maxAutomatedWhatsApp || 0, 10),
+        maxWorkspaceMembers: parseInt(data.maxWorkspaceMembers || 1, 10),
+        canExportContacts: Boolean(data.canExportContacts),
+        canImportContacts: Boolean(data.canImportContacts),
+        hasReminders: Boolean(data.hasReminders),
+        reminderTypes: data.reminderTypes ? (typeof data.reminderTypes === 'string' ? data.reminderTypes : JSON.stringify(data.reminderTypes)) : null,
+        canCustomBranding: Boolean(data.canCustomBranding),
+        hasPrioritySupport: Boolean(data.hasPrioritySupport),
+        hasFamilyCategorisation: Boolean(data.hasFamilyCategorisation),
+        hasAdvancedSearch: Boolean(data.hasAdvancedSearch),
         canUploadCustomTemplates: Boolean(data.canUploadCustomTemplates),
         canCustomInviteUpload: Boolean(data.canCustomInviteUpload),
         tier: parseInt(data.tier || 0, 10),
@@ -437,6 +449,18 @@ export async function updatePlan(req, res, next) {
         ...(data.maxEvents !== undefined ? { maxEvents: parseInt(data.maxEvents, 10) } : {}),
         ...(data.maxGuestsPerEvent !== undefined ? { maxGuestsPerEvent: parseInt(data.maxGuestsPerEvent, 10) } : {}),
         ...(data.maxPermanentGuests !== undefined ? { maxPermanentGuests: parseInt(data.maxPermanentGuests, 10) } : {}),
+        ...(data.maxContacts !== undefined ? { maxContacts: parseInt(data.maxContacts, 10) } : {}),
+        ...(data.maxCampaignsPerMonth !== undefined ? { maxCampaignsPerMonth: parseInt(data.maxCampaignsPerMonth, 10) } : {}),
+        ...(data.maxAutomatedWhatsApp !== undefined ? { maxAutomatedWhatsApp: parseInt(data.maxAutomatedWhatsApp, 10) } : {}),
+        ...(data.maxWorkspaceMembers !== undefined ? { maxWorkspaceMembers: parseInt(data.maxWorkspaceMembers, 10) } : {}),
+        ...(data.canExportContacts !== undefined ? { canExportContacts: Boolean(data.canExportContacts) } : {}),
+        ...(data.canImportContacts !== undefined ? { canImportContacts: Boolean(data.canImportContacts) } : {}),
+        ...(data.hasReminders !== undefined ? { hasReminders: Boolean(data.hasReminders) } : {}),
+        ...(data.reminderTypes !== undefined ? { reminderTypes: typeof data.reminderTypes === 'string' ? data.reminderTypes : JSON.stringify(data.reminderTypes) } : {}),
+        ...(data.canCustomBranding !== undefined ? { canCustomBranding: Boolean(data.canCustomBranding) } : {}),
+        ...(data.hasPrioritySupport !== undefined ? { hasPrioritySupport: Boolean(data.hasPrioritySupport) } : {}),
+        ...(data.hasFamilyCategorisation !== undefined ? { hasFamilyCategorisation: Boolean(data.hasFamilyCategorisation) } : {}),
+        ...(data.hasAdvancedSearch !== undefined ? { hasAdvancedSearch: Boolean(data.hasAdvancedSearch) } : {}),
         ...(data.canUploadCustomTemplates !== undefined ? { canUploadCustomTemplates: Boolean(data.canUploadCustomTemplates) } : {}),
         ...(data.canCustomInviteUpload !== undefined ? { canCustomInviteUpload: Boolean(data.canCustomInviteUpload) } : {}),
         ...(data.tier !== undefined ? { tier: parseInt(data.tier, 10) } : {}),
@@ -526,7 +550,7 @@ export async function deletePlan(req, res, next) {
     }
 
     // Default platform plans cannot be deleted
-    const defaultCodes = ['BASIC', 'STANDARD', 'PREMIUM', 'TRIAL'];
+    const defaultCodes = ['FREE', 'PERSONAL', 'FAMILY', 'FAMILY_PLUS', 'BASIC', 'STANDARD', 'PREMIUM', 'TRIAL'];
     if (defaultCodes.includes(plan.code)) {
       return res.status(400).json({
         success: false,

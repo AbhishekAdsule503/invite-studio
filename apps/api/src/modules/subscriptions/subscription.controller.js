@@ -122,3 +122,20 @@ export async function cancelSubscription(req, res, next) {
     next(error);
   }
 }
+
+export async function switchPlan(req, res, next) {
+  try {
+    const { planId, planCode } = req.body;
+    const subscription = await subscriptionService.switchPlan(req.user.id, {
+      targetPlanId: planId,
+      targetPlanCode: planCode
+    });
+    return res.status(200).json({
+      success: true,
+      message: 'Plan updated successfully. All existing data and campaigns are preserved.',
+      subscription
+    });
+  } catch (error) {
+    next(error);
+  }
+}

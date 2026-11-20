@@ -1,5 +1,6 @@
 import ExcelJS from 'exceljs';
 import prisma from '../database/prisma.js';
+import subscriptionService from './subscription.service.js';
 import { normalizePhone, phoneRegex } from '@smart-invitation/shared';
 
 export class ExcelService {
@@ -88,6 +89,9 @@ export class ExcelService {
    * @param {Buffer} fileBuffer
    */
   async parseAndPreviewImport(userId, fileBuffer) {
+    // Enforce bulk import entitlement
+    await subscriptionService.enforceLimit(userId, 'IMPORT_CONTACTS', { count: 0 });
+
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(fileBuffer);
 
@@ -231,6 +235,9 @@ export class ExcelService {
       throw err;
     }
 
+    // Enforce import entitlement and contact capacity
+    await subscriptionService.enforceLimit(userId, 'IMPORT_CONTACTS', { count: rowsToImport.length });
+
     return prisma.$transaction(async (tx) => {
       let importedCount = 0;
       const seenPhones = new Set();
@@ -276,6 +283,9 @@ export class ExcelService {
    * @returns {Promise<Buffer>}
    */
   async exportGuests(userId) {
+    // Enforce export entitlement (Personal, Family, Family Plus)
+    await subscriptionService.enforceLimit(userId, 'EXPORT_CONTACTS');
+
     const guests = await prisma.guest.findMany({
       where: { userId },
       orderBy: { fullName: 'asc' }

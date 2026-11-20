@@ -126,6 +126,11 @@ export class GuestService {
         email: data.email ? data.email.trim().toLowerCase() : null,
         address: data.address ? data.address.trim() : null,
         relation: data.relation ? data.relation.trim() : null,
+        birthDate: data.birthDate ? new Date(data.birthDate) : null,
+        anniversaryDate: data.anniversaryDate ? new Date(data.anniversaryDate) : null,
+        category: data.category ? data.category.trim() : null,
+        tags: data.tags ? (typeof data.tags === 'string' ? data.tags : JSON.stringify(data.tags)) : null,
+        notes: data.notes ? data.notes.trim() : null,
         isPermanent: true
       }
     });
@@ -180,7 +185,12 @@ export class GuestService {
         whatsappNumber: normalizedMobile,
         ...(data.email !== undefined ? { email: data.email ? data.email.trim().toLowerCase() : null } : {}),
         ...(data.address !== undefined ? { address: data.address ? data.address.trim() : null } : {}),
-        ...(data.relation !== undefined ? { relation: data.relation ? data.relation.trim() : null } : {})
+        ...(data.relation !== undefined ? { relation: data.relation ? data.relation.trim() : null } : {}),
+        ...(data.birthDate !== undefined ? { birthDate: data.birthDate ? new Date(data.birthDate) : null } : {}),
+        ...(data.anniversaryDate !== undefined ? { anniversaryDate: data.anniversaryDate ? new Date(data.anniversaryDate) : null } : {}),
+        ...(data.category !== undefined ? { category: data.category ? data.category.trim() : null } : {}),
+        ...(data.tags !== undefined ? { tags: typeof data.tags === 'string' ? data.tags : JSON.stringify(data.tags) } : {}),
+        ...(data.notes !== undefined ? { notes: data.notes ? data.notes.trim() : null } : {})
       }
     });
 

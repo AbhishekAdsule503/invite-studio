@@ -23,5 +23,6 @@ router.post('/create-order', validateRequest(createOrderSchema), subController.c
 router.post('/verify-payment', validateRequest(verifyPaymentSchema), subController.verifyPayment);
 router.post('/record-failure', validateRequest(recordPaymentFailureSchema), subController.recordPaymentFailure);
 router.post('/cancel', subController.cancelSubscription);
+router.post('/switch-plan', subController.switchPlan);
 
 export default router;

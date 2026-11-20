@@ -114,7 +114,7 @@ export default function SubscriptionHistoryPage() {
               <div className="pt-2">
                 <Link href="/subscription/plans">
                   <Button size="sm" variant="outline" className="text-xs">
-                    Browse Yearly Plans
+                    Browse Plans
                   </Button>
                 </Link>
               </div>
@@ -139,7 +139,7 @@ export default function SubscriptionHistoryPage() {
                         {new Date(p.createdAt).toLocaleDateString()} {new Date(p.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </td>
                       <td className="py-3 px-4 font-semibold text-charcoal-900">
-                        {p.plan?.name || 'Yearly Plan'}
+                        {p.plan?.name || 'Subscription Plan'}
                       </td>
                       <td className="py-3 px-4 font-mono font-bold text-charcoal-900">
                         ₹{(p.amount / 100).toLocaleString('en-IN')}

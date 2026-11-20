@@ -8,6 +8,8 @@ import templateRoutes from '../modules/templates/template.routes.js';
 import subscriptionRoutes from '../modules/subscriptions/subscription.routes.js';
 import supportRoutes from '../modules/support/support.routes.js';
 import adminRoutes from '../modules/admin/admin.routes.js';
+import workspaceRoutes from '../modules/workspace/workspace.routes.js';
+import reminderRoutes from '../modules/reminders/reminder.routes.js';
 
 const router = Router();
 
@@ -29,6 +31,8 @@ router.use('/templates', templateRoutes);
 router.use('/subscriptions', subscriptionRoutes);
 router.use('/support', supportRoutes);
 router.use('/admin', adminRoutes);
+router.use('/workspace', workspaceRoutes);
+router.use('/reminders', reminderRoutes);
 
 export default router;
 

@@ -12,6 +12,18 @@ export interface SubscriptionPlan {
   maxEvents: number;
   maxGuestsPerEvent: number;
   maxPermanentGuests: number;
+  maxContacts?: number;
+  maxCampaignsPerMonth?: number;
+  maxAutomatedWhatsApp?: number;
+  maxWorkspaceMembers?: number;
+  canExportContacts?: boolean;
+  canImportContacts?: boolean;
+  hasReminders?: boolean;
+  reminderTypes?: string[];
+  canCustomBranding?: boolean;
+  hasPrioritySupport?: boolean;
+  hasFamilyCategorisation?: boolean;
+  hasAdvancedSearch?: boolean;
   canUploadCustomTemplates: boolean;
   canCustomInviteUpload: boolean;
   tier: number;
@@ -48,8 +60,16 @@ export interface CurrentSubscriptionResponse {
   startsAt: string;
   expiresAt: string;
   cancelledAt?: string | null;
+  billingPeriod?: {
+    start: string;
+    end: string;
+  };
   plan: SubscriptionPlan;
   usage: {
+    contacts?: QuotaUsage;
+    campaigns?: QuotaUsage;
+    automatedWhatsApp?: QuotaUsage;
+    familyMembers?: QuotaUsage;
     events: QuotaUsage;
     permanentGuests: QuotaUsage;
     maxGuestsPerEvent: number;
@@ -166,6 +186,46 @@ export const subscriptionService = {
 
   async cancel(): Promise<void> {
     await apiClient.post('/subscriptions/cancel');
+  },
+
+  async switchPlan(payload: { planId?: string; planCode?: string }): Promise<any> {
+    const res = await apiClient.post('/subscriptions/switch-plan', payload);
+    return res.data;
+  },
+
+  async getWorkspace(): Promise<any> {
+    const res = await apiClient.get('/workspace');
+    return res.data;
+  },
+
+  async inviteWorkspaceMember(data: { email?: string; mobile?: string; name?: string; role?: string }): Promise<any> {
+    const res = await apiClient.post('/workspace/invite', data);
+    return res.data;
+  },
+
+  async getPendingWorkspaceInvites(): Promise<any[]> {
+    const res = await apiClient.get('/workspace/pending-invites');
+    return res.data.invites;
+  },
+
+  async acceptWorkspaceInvite(id: string): Promise<any> {
+    const res = await apiClient.post(`/workspace/invites/${id}/accept`);
+    return res.data;
+  },
+
+  async rejectWorkspaceInvite(id: string): Promise<any> {
+    const res = await apiClient.post(`/workspace/invites/${id}/reject`);
+    return res.data;
+  },
+
+  async removeWorkspaceMember(id: string): Promise<any> {
+    const res = await apiClient.delete(`/workspace/members/${id}`);
+    return res.data;
+  },
+
+  async getUpcomingReminders(daysAhead: number = 14): Promise<any> {
+    const res = await apiClient.get('/reminders/upcoming', { params: { daysAhead } });
+    return res.data;
   },
 
   async createSupportTicket(data: {

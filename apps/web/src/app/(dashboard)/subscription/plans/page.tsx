@@ -37,8 +37,8 @@ export default function SubscriptionPlansPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Billing Cycle state: 'YEARLY' | 'MONTHLY'
-  const [billingCycle, setBillingCycle] = useState<'YEARLY' | 'MONTHLY'>('YEARLY');
+  // Billing Cycle state: 'MONTHLY' | 'YEARLY' (Default to monthly for final 4-tier plans)
+  const [billingCycle, setBillingCycle] = useState<'YEARLY' | 'MONTHLY'>('MONTHLY');
 
   // Checkout modal state
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
@@ -83,6 +83,19 @@ export default function SubscriptionPlansPage() {
 
     const price = effectiveCycle === 'MONTHLY' ? plan.priceMonthly || 0 : plan.priceYearly;
     if (price <= 0) {
+      // Free plan requires no payment gateway transaction
+      try {
+        setCheckoutLoading(true);
+        await subscriptionService.switchPlan({ planId: plan.id });
+        setPaymentSuccess(true);
+        if (refreshUser) await refreshUser();
+        const updated = await subscriptionService.getCurrent();
+        setCurrentSub(updated);
+      } catch (err: any) {
+        setCheckoutError(err.message || 'Failed to activate plan.');
+      } finally {
+        setCheckoutLoading(false);
+      }
       return;
     }
 

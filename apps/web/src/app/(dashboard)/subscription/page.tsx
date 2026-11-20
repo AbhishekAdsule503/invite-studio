@@ -113,6 +113,25 @@ export default function SubscriptionOverviewPage() {
   const { plan, usage } = data;
   const isGrace = data.inGracePeriod;
   const isExpired = data.isExpired;
+  const isMonthly = data.billingCycle === 'MONTHLY';
+  const isFree = plan.code === 'FREE' || (plan.priceMonthly === 0 && plan.priceYearly === 0);
+
+  const displayPrice = isFree
+    ? '₹0'
+    : isMonthly
+    ? plan.priceMonthly === 0
+      ? '₹0'
+      : `₹${((plan.priceMonthly || 0) / 100).toLocaleString('en-IN')}`
+    : plan.priceYearly === 0
+    ? '₹0'
+    : `₹${((plan.priceYearly || 0) / 100).toLocaleString('en-IN')}`;
+
+  const pricePeriod = isFree ? '/lifetime' : isMonthly ? '/month' : '/year';
+  const billingLabel = isFree
+    ? 'Complimentary'
+    : isMonthly
+    ? 'Monthly Price'
+    : 'Annual Price';
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-8">
@@ -123,8 +142,10 @@ export default function SubscriptionOverviewPage() {
             <span className="text-xs font-semibold uppercase tracking-wider text-brand-600">
               Host Membership
             </span>
-            <span className="text-charcoal-300">•</span>
-            <span className="text-xs text-charcoal-500">Yearly Plans</span>
+            <span className="text-charcoal-400">•</span>
+            <span className="text-xs text-charcoal-600 font-medium">
+              {isFree ? 'Free Plan' : isMonthly ? 'Monthly Plan' : 'Annual Plan'}
+            </span>
           </div>
           <h1 className="font-display font-extrabold text-3xl text-charcoal-900 tracking-tight mt-1">
             Subscription &amp; Usage
@@ -190,72 +211,79 @@ export default function SubscriptionOverviewPage() {
       )}
 
       {/* Current Plan Overview Card */}
-      <div className="rounded-3xl bg-gradient-to-br from-charcoal-900 via-charcoal-800 to-charcoal-950 text-white p-6 sm:p-8 shadow-xl relative overflow-hidden">
-        <div className="absolute right-0 top-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-brand-500/10 blur-3xl pointer-events-none" />
+      <div className="rounded-3xl bg-gradient-to-br from-[#2D0D19] via-[#200A12] to-[#14040A] text-white p-6 sm:p-8 shadow-xl border border-[#D8B66E]/25 relative overflow-hidden">
+        {/* Soft atmospheric ambient glow */}
+        <div className="absolute right-0 top-0 -mr-16 -mt-16 w-80 h-80 rounded-full bg-[#D8B66E]/10 blur-3xl pointer-events-none" />
+        <div className="absolute left-1/4 bottom-0 -mb-20 w-72 h-72 rounded-full bg-[#5C2032]/35 blur-3xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-3">
-            <div className="flex items-center space-x-2.5">
-              <Badge
-                variant={data.status === 'ACTIVE' ? 'success' : isExpired ? 'danger' : 'brand'}
-                className="text-[11px] font-semibold uppercase tracking-wider px-2.5 py-0.5"
-              >
+          <div className="space-y-3.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center text-[11px] font-semibold uppercase tracking-wider px-3 py-1 rounded-full border bg-emerald-500/15 text-emerald-300 border-emerald-500/30">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse" />
                 {data.status === 'TRIAL' ? '30-Day Free Trial' : `${data.status} Membership`}
-              </Badge>
+              </span>
+
+              {!isFree && (
+                <span className="inline-flex items-center text-[11px] font-semibold uppercase tracking-wider px-3 py-1 rounded-full border bg-[#D8B66E]/15 text-[#E5C378] border-[#D8B66E]/30">
+                  {isMonthly ? 'Monthly Plan' : 'Annual Plan'}
+                </span>
+              )}
+
               {plan.isPopular && (
-                <Badge variant="brand" className="text-[11px] bg-brand-500/20 text-brand-300 border-brand-500/30">
+                <span className="inline-flex items-center text-[11px] font-semibold tracking-wider px-3 py-1 rounded-full border bg-rose-500/20 text-rose-200 border-rose-500/30">
                   Most Popular
-                </Badge>
+                </span>
               )}
             </div>
 
             <div>
-              <h2 className="font-display font-extrabold text-3xl sm:text-4xl tracking-tight">
+              <h2 className="font-display font-black text-3xl sm:text-4xl !text-white tracking-tight drop-shadow-xs">
                 {plan.name}
               </h2>
-              <p className="text-sm text-charcoal-300 mt-1 max-w-xl">
+              <p className="text-sm text-[#F4E7EB] mt-1.5 max-w-xl leading-relaxed">
                 {plan.description || 'Configurable celebration plan tailored for Indian family hosts.'}
               </p>
             </div>
 
-            <div className="flex items-center space-x-4 text-xs text-charcoal-400 pt-1">
-              <div className="flex items-center space-x-1.5">
-                <Calendar className="w-4 h-4 text-brand-400" />
+            <div className="flex flex-wrap items-center gap-3 text-xs text-[#E7CFD7] pt-1">
+              <div className="flex items-center space-x-1.5 bg-black/25 px-3 py-1.5 rounded-xl border border-white/10">
+                <Calendar className="w-3.5 h-3.5 text-[#D8B66E]" />
                 <span>
-                  Expires: <strong className="text-white">{new Date(data.expiresAt).toLocaleDateString()}</strong>
+                  Expires: <strong className="!text-white">{new Date(data.expiresAt).toLocaleDateString()}</strong>
                 </span>
               </div>
-              <div className="flex items-center space-x-1.5">
-                <Clock className="w-4 h-4 text-brand-400" />
+              <div className="flex items-center space-x-1.5 bg-black/25 px-3 py-1.5 rounded-xl border border-white/10">
+                <Clock className="w-3.5 h-3.5 text-[#D8B66E]" />
                 <span>
                   {data.daysRemaining > 0 ? (
-                    <strong className="text-emerald-400">{data.daysRemaining} days remaining</strong>
+                    <strong className="text-emerald-300 font-semibold">{data.daysRemaining} days remaining</strong>
                   ) : (
-                    <strong className="text-red-400">Expired</strong>
+                    <strong className="text-rose-400 font-semibold">Expired</strong>
                   )}
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="flex flex-col items-start md:items-end justify-between border-t md:border-t-0 md:border-l border-white/10 pt-4 md:pt-0 md:pl-8 shrink-0">
-            <div>
-              <span className="text-xs uppercase tracking-wider text-charcoal-400 block font-medium">
-                Annual Price
+          <div className="flex flex-col items-start md:items-end justify-between border-t md:border-t-0 md:border-l border-white/10 pt-5 md:pt-0 md:pl-8 shrink-0">
+            <div className="text-left md:text-right">
+              <span className="text-[11px] uppercase tracking-wider text-[#D8B66E] block font-semibold">
+                {billingLabel}
               </span>
-              <div className="flex items-baseline space-x-1 mt-0.5">
-                <span className="font-display font-black text-3xl sm:text-4xl text-white">
-                  {plan.priceYearly === 0 ? '₹0' : `₹${(plan.priceYearly / 100).toLocaleString('en-IN')}`}
+              <div className="flex items-baseline md:justify-end space-x-1.5 mt-1">
+                <span className="font-display font-black text-3xl sm:text-4xl !text-white tracking-tight">
+                  {displayPrice}
                 </span>
-                <span className="text-xs text-charcoal-400">/year</span>
+                <span className="text-xs text-[#E7CFD7] font-medium">{pricePeriod}</span>
               </div>
             </div>
 
             <div className="mt-5 flex items-center space-x-2">
               <Link href="/subscription/plans">
-                <Button className="bg-brand-500 hover:bg-brand-400 text-white font-semibold text-xs px-4 py-2">
+                <Button className="bg-[#D8B66E] hover:bg-[#C29C50] text-[#1A060E] font-bold text-xs px-5 py-2.5 rounded-xl shadow-md transition-all flex items-center space-x-1.5">
                   <span>Explore All Plans</span>
-                  <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+                  <ArrowRight className="w-4 h-4 ml-1" />
                 </Button>
               </Link>
             </div>
@@ -265,129 +293,178 @@ export default function SubscriptionOverviewPage() {
 
       {/* Quotas & Live Consumption Grid */}
       <div>
-        <h3 className="font-display font-bold text-xl text-charcoal-900 tracking-tight mb-4">
-          Plan Quotas &amp; Active Usage
-        </h3>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+          <h3 className="font-display font-bold text-xl text-charcoal-900 tracking-tight">
+            Plan Quotas &amp; Active Usage
+          </h3>
+          {data.billingPeriod && (
+            <span className="text-xs text-charcoal-500 font-medium">
+              Billing Period: <strong className="text-charcoal-700">{new Date(data.billingPeriod.start).toLocaleDateString()} – {new Date(data.billingPeriod.end).toLocaleDateString()}</strong>
+            </span>
+          )}
+        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Events Quota Card */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          {/* 1. Saved Contacts Card */}
           <Card className="p-5 flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-semibold uppercase tracking-wider text-charcoal-500">
-                  Total Events
-                </span>
-                <div className="w-8 h-8 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center">
-                  <Calendar className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="flex items-baseline space-x-1.5">
-                <span className="font-display font-black text-3xl text-charcoal-900">
-                  {usage.events.used}
-                </span>
-                <span className="text-sm font-medium text-charcoal-400">
-                  / {usage.events.limit} events
-                </span>
-              </div>
-              <p className="text-xs text-charcoal-500 mt-1">
-                {usage.events.remaining > 0
-                  ? `${usage.events.remaining} event slots remaining this year`
-                  : 'Event limit reached'}
-              </p>
-            </div>
-
-            <div className="mt-5">
-              <div className="w-full bg-surface-warm h-2 rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-500 ${
-                    usage.events.percentage >= 90
-                      ? 'bg-red-500'
-                      : usage.events.percentage >= 70
-                      ? 'bg-amber-500'
-                      : 'bg-brand-600'
-                  }`}
-                  style={{ width: `${Math.min(100, usage.events.percentage)}%` }}
-                />
-              </div>
-              <div className="flex justify-between items-center text-[10px] text-charcoal-400 mt-1.5">
-                <span>{usage.events.percentage}% used</span>
-                <span>Max: {usage.events.limit}</span>
-              </div>
-            </div>
-          </Card>
-
-          {/* Permanent Guests Saved Card */}
-          <Card className="p-5 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-semibold uppercase tracking-wider text-charcoal-500">
-                  Saved Address Book
+                  Saved Contacts
                 </span>
                 <div className="w-8 h-8 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center">
                   <Users className="w-4 h-4" />
                 </div>
               </div>
               <div className="flex items-baseline space-x-1.5">
-                <span className="font-display font-black text-3xl text-charcoal-900">
-                  {usage.permanentGuests.used}
+                <span className="font-display font-black text-2xl sm:text-3xl text-charcoal-900">
+                  {(usage.contacts?.used ?? usage.permanentGuests.used).toLocaleString()}
                 </span>
                 <span className="text-sm font-medium text-charcoal-400">
-                  / {usage.permanentGuests.limit} guests
+                  / {(usage.contacts?.limit ?? usage.permanentGuests.limit).toLocaleString()} contacts
                 </span>
               </div>
               <p className="text-xs text-charcoal-500 mt-1">
-                Permanent contacts saved in My Guests
+                {(usage.contacts?.used ?? usage.permanentGuests.used)} / {(usage.contacts?.limit ?? usage.permanentGuests.limit)} contacts used
               </p>
             </div>
 
-            <div className="mt-5">
+            <div className="mt-4">
               <div className="w-full bg-surface-warm h-2 rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all duration-500 ${
-                    usage.permanentGuests.percentage >= 90
+                    (usage.contacts?.percentage ?? usage.permanentGuests.percentage) >= 90
                       ? 'bg-red-500'
-                      : usage.permanentGuests.percentage >= 70
+                      : (usage.contacts?.percentage ?? usage.permanentGuests.percentage) >= 70
                       ? 'bg-amber-500'
-                      : 'bg-emerald-600'
+                      : 'bg-brand-600'
                   }`}
-                  style={{ width: `${Math.min(100, usage.permanentGuests.percentage)}%` }}
+                  style={{ width: `${Math.min(100, usage.contacts?.percentage ?? usage.permanentGuests.percentage)}%` }}
                 />
               </div>
               <div className="flex justify-between items-center text-[10px] text-charcoal-400 mt-1.5">
-                <span>{usage.permanentGuests.percentage}% filled</span>
-                <span>Max: {usage.permanentGuests.limit}</span>
+                <span>{usage.contacts?.percentage ?? usage.permanentGuests.percentage}% filled</span>
+                <span>{(usage.contacts?.remaining ?? usage.permanentGuests.remaining)} left</span>
               </div>
             </div>
           </Card>
 
-          {/* Guests Per Event Limit Card */}
+          {/* 2. Monthly Campaigns Card */}
           <Card className="p-5 flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-semibold uppercase tracking-wider text-charcoal-500">
-                  Capacity Per Event
+                  Monthly Campaigns
+                </span>
+                <div className="w-8 h-8 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center">
+                  <Calendar className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="flex items-baseline space-x-1.5">
+                <span className="font-display font-black text-2xl sm:text-3xl text-charcoal-900">
+                  {(usage.campaigns?.used ?? usage.events.used)}
+                </span>
+                <span className="text-sm font-medium text-charcoal-400">
+                  / {(usage.campaigns?.limit ?? usage.events.limit)} campaigns
+                </span>
+              </div>
+              <p className="text-xs text-charcoal-500 mt-1">
+                {(usage.campaigns?.used ?? usage.events.used)} / {(usage.campaigns?.limit ?? usage.events.limit)} used this billing cycle
+              </p>
+            </div>
+
+            <div className="mt-4">
+              <div className="w-full bg-surface-warm h-2 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    (usage.campaigns?.percentage ?? usage.events.percentage) >= 90
+                      ? 'bg-red-500'
+                      : (usage.campaigns?.percentage ?? usage.events.percentage) >= 70
+                      ? 'bg-amber-500'
+                      : 'bg-emerald-600'
+                  }`}
+                  style={{ width: `${Math.min(100, usage.campaigns?.percentage ?? usage.events.percentage)}%` }}
+                />
+              </div>
+              <div className="flex justify-between items-center text-[10px] text-charcoal-400 mt-1.5">
+                <span>{usage.campaigns?.percentage ?? usage.events.percentage}% used</span>
+                <span>{(usage.campaigns?.remaining ?? usage.events.remaining)} remaining</span>
+              </div>
+            </div>
+          </Card>
+
+          {/* 3. Automated WhatsApp Messages Card */}
+          <Card className="p-5 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-semibold uppercase tracking-wider text-charcoal-500">
+                  Automated WhatsApp
+                </span>
+                <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="flex items-baseline space-x-1.5">
+                <span className="font-display font-black text-2xl sm:text-3xl text-charcoal-900">
+                  {usage.automatedWhatsApp?.used ?? 0}
+                </span>
+                <span className="text-sm font-medium text-charcoal-400">
+                  / {usage.automatedWhatsApp?.limit ?? 0} msgs
+                </span>
+              </div>
+              <p className="text-xs text-charcoal-500 mt-1">
+                {(usage.automatedWhatsApp?.limit ?? 0) > 0
+                  ? `${usage.automatedWhatsApp?.used ?? 0} / ${usage.automatedWhatsApp?.limit} messages used`
+                  : 'Manual click-to-chat sharing active'}
+              </p>
+            </div>
+
+            <div className="mt-4">
+              <div className="w-full bg-surface-warm h-2 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    (usage.automatedWhatsApp?.percentage ?? 0) >= 90
+                      ? 'bg-red-500'
+                      : 'bg-brand-600'
+                  }`}
+                  style={{ width: `${Math.min(100, usage.automatedWhatsApp?.percentage ?? 0)}%` }}
+                />
+              </div>
+              <div className="flex justify-between items-center text-[10px] text-charcoal-400 mt-1.5">
+                <span>{usage.automatedWhatsApp?.percentage ?? 0}% quota used</span>
+                <span>Max: {usage.automatedWhatsApp?.limit ?? 0}/mo</span>
+              </div>
+            </div>
+          </Card>
+
+          {/* 4. Family Members Access Card */}
+          <Card className="p-5 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-semibold uppercase tracking-wider text-charcoal-500">
+                  Family Workspace
                 </span>
                 <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
                   <Crown className="w-4 h-4" />
                 </div>
               </div>
               <div className="flex items-baseline space-x-1.5">
-                <span className="font-display font-black text-3xl text-charcoal-900">
-                  {usage.maxGuestsPerEvent}
+                <span className="font-display font-black text-2xl sm:text-3xl text-charcoal-900">
+                  {usage.familyMembers?.used ?? 1}
                 </span>
                 <span className="text-sm font-medium text-charcoal-400">
-                  guests / celebration
+                  / {usage.familyMembers?.limit ?? 1} members
                 </span>
               </div>
               <p className="text-xs text-charcoal-500 mt-1">
-                Max invitees supported for each celebration
+                {usage.familyMembers?.used ?? 1} / {usage.familyMembers?.limit ?? 1} active family accounts
               </p>
             </div>
 
-            <div className="mt-5 pt-3 border-t border-surface-border flex items-center justify-between text-xs">
-              <span className="text-charcoal-600 font-medium">Custom Template Studio:</span>
-              <Badge variant={plan.canUploadCustomTemplates ? 'success' : 'default'}>
-                {plan.canUploadCustomTemplates ? 'Unlocked' : 'Standard / Pro'}
+            <div className="mt-4 pt-3 border-t border-surface-border flex items-center justify-between text-xs">
+              <span className="text-charcoal-600 font-medium">Shared Access:</span>
+              <Badge variant={(usage.familyMembers?.limit ?? 1) > 1 ? 'success' : 'default'}>
+                {(usage.familyMembers?.limit ?? 1) > 1 ? 'Enabled' : 'Owner Only'}
               </Badge>
             </div>
           </Card>
