@@ -15,6 +15,9 @@ const __dirname = path.dirname(__filename);
 export function createApp() {
   const app = express();
 
+  // Trust first proxy hop (Render reverse proxy) for accurate client IP resolution and rate limiting
+  app.set('trust proxy', 1);
+
   // Basic security headers with cross-origin asset support
   app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 

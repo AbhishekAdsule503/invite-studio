@@ -1,0 +1,15 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/(dashboard)/layout,_N_T_/(dashboard)/invitations/layout,_N_T_/(dashboard)/invitations/page,_N_T_/invitations"
+  },
+  "routeCache": {
+    "key": "/route-cache/APP_PAGE/8425eac8bfc1e69131a34e2efa73361958aa9729339c0cd3c73355dca736525c/$/invitations",
+    "owner": {
+      "kind": "APP_PAGE",
+      "sourceRoute": "/(dashboard)/invitations/page"
+    },
+    "isFallback": false
+  }
+}

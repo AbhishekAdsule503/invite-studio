@@ -1,0 +1,15 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/refund/layout,_N_T_/refund/page,_N_T_/refund"
+  },
+  "routeCache": {
+    "key": "/route-cache/APP_PAGE/0a96c5b7cd0a85b7bdc26b1806011cd6f7c029518344cb742034822eb46b4b8b/$/refund",
+    "owner": {
+      "kind": "APP_PAGE",
+      "sourceRoute": "/refund/page"
+    },
+    "isFallback": false
+  }
+}

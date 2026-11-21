@@ -17,6 +17,11 @@ test('Project Foundation - Express Application', async (t) => {
     assert.ok(app, 'Express app should be created');
   });
 
+  await t.test('createApp sets trust proxy to 1 for reverse proxy deployment', () => {
+    const app = createApp();
+    assert.strictEqual(app.get('trust proxy'), 1, 'Express trust proxy must be configured to 1');
+  });
+
   await t.test('testDatabaseConnection handles unreachable DB gracefully without crashing', async () => {
     const result = await testDatabaseConnection();
     assert.strictEqual(typeof result.ok, 'boolean');
